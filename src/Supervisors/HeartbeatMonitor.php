@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 
+use function array_filter;
 use function config;
+use function in_array;
 
 /**
  * Tracks heartbeats from supervised jobs for stuck job detection.
@@ -68,7 +70,7 @@ final class HeartbeatMonitor
 
         // Store heartbeat data
         /** @var int $ttl */
-        $ttl = config('chaperone.supervision.heartbeat_ttl_seconds', 3600);
+        $ttl = config('chaperone.supervision.heartbeat_ttl_seconds', 3_600);
         Cache::put(
             self::HEARTBEAT_PREFIX.$supervisionId,
             $heartbeatData,
@@ -83,7 +85,9 @@ final class HeartbeatMonitor
 
         // Fire event
         $heartbeatId = Str::uuid()->toString();
-        Event::dispatch(new HeartbeatReceived($supervisionId, $heartbeatId, $metadata));
+        Event::dispatch(
+            new HeartbeatReceived($supervisionId, $heartbeatId, $metadata)
+        );
     }
 
     /**
@@ -115,14 +119,16 @@ final class HeartbeatMonitor
             $threshold = $heartbeatData['metadata']['missed_heartbeats_threshold']
                 ?? config('chaperone.supervision.missed_heartbeats_threshold', 3);
 
-            if ($missedCount >= $threshold) {
-                $stuckJobs->push([
-                    'supervision_id' => $supervisionId,
-                    'missed_count' => $missedCount,
-                    'last_heartbeat_at' => $heartbeatData['last_heartbeat_at'],
-                    'metadata' => $heartbeatData['metadata'],
-                ]);
+            if ($missedCount < $threshold) {
+                continue;
             }
+
+            $stuckJobs->push([
+                'supervision_id' => $supervisionId,
+                'missed_count' => $missedCount,
+                'last_heartbeat_at' => $heartbeatData['last_heartbeat_at'],
+                'metadata' => $heartbeatData['metadata'],
+            ]);
         }
 
         return $stuckJobs;
@@ -133,15 +139,13 @@ final class HeartbeatMonitor
      *
      * Retrieves the stored heartbeat information including timestamp and metadata.
      *
-     * @param  string                                                                                   $supervisionId Supervision session identifier
+     * @param  string                                                                                              $supervisionId Supervision session identifier
      * @return null|array{supervision_id: string, last_heartbeat_at: string, metadata: array, recorded_at: string} Heartbeat data or null if not found
      */
     public function getHeartbeatData(string $supervisionId): ?array
     {
         /** @var null|array{supervision_id: string, last_heartbeat_at: string, metadata: array, recorded_at: string} $data */
-        $data = Cache::get(self::HEARTBEAT_PREFIX.$supervisionId);
-
-        return $data;
+        return Cache::get(self::HEARTBEAT_PREFIX.$supervisionId);
     }
 
     /**
@@ -218,10 +222,12 @@ final class HeartbeatMonitor
         /** @var array<string> $activeSessions */
         $activeSessions = Cache::get(self::ACTIVE_SESSIONS_KEY, []);
 
-        if (!\in_array($supervisionId, $activeSessions, true)) {
-            $activeSessions[] = $supervisionId;
-            Cache::put(self::ACTIVE_SESSIONS_KEY, $activeSessions);
+        if (in_array($supervisionId, $activeSessions, true)) {
+            return;
         }
+
+        $activeSessions[] = $supervisionId;
+        Cache::put(self::ACTIVE_SESSIONS_KEY, $activeSessions);
     }
 
     /**
@@ -231,9 +237,9 @@ final class HeartbeatMonitor
      * If a heartbeat is missed, increments the missed counter and fires
      * HeartbeatMissed event.
      *
-     * @param  string                                                                                   $supervisionId  Supervision session identifier
-     * @param  array{supervision_id: string, last_heartbeat_at: string, metadata: array, recorded_at: string} $heartbeatData  Stored heartbeat information
-     * @return int                                                                                      Current missed heartbeat count
+     * @param  string                                                                                         $supervisionId Supervision session identifier
+     * @param  array{supervision_id: string, last_heartbeat_at: string, metadata: array, recorded_at: string} $heartbeatData Stored heartbeat information
+     * @return int                                                                                            Current missed heartbeat count
      */
     private function checkMissedHeartbeat(string $supervisionId, array $heartbeatData): int
     {
@@ -255,18 +261,20 @@ final class HeartbeatMonitor
             Cache::put(
                 self::MISSED_PREFIX.$supervisionId,
                 $missedCount,
-                config('chaperone.supervision.heartbeat_ttl_seconds', 3600),
+                config('chaperone.supervision.heartbeat_ttl_seconds', 3_600),
             );
 
             // Fire event
             $expectedAtImmutable = new DateTimeImmutable($expectedNextHeartbeat->format('c'));
             $missedDuration = (int) $now->diffInMilliseconds($expectedNextHeartbeat);
 
-            Event::dispatch(new HeartbeatMissed(
-                $supervisionId,
-                $expectedAtImmutable,
-                $missedDuration,
-            ));
+            Event::dispatch(
+                new HeartbeatMissed(
+                    $supervisionId,
+                    $expectedAtImmutable,
+                    $missedDuration,
+                )
+            );
         }
 
         return $missedCount;

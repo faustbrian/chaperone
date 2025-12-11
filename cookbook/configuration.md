@@ -107,7 +107,7 @@ The type of polymorphic relationship columns used for tracking job ownership and
 **Environment:**
 
 ```env
-CHAPERONE_MORPH_TYPE=ulidMorph
+CHAPERONE_MORPH_TYPE=ulid
 ```
 
 **Use Cases:**
@@ -121,21 +121,21 @@ CHAPERONE_MORPH_TYPE=morph
 
 **UUID Morphs**
 ```env
-CHAPERONE_MORPH_TYPE=uuidMorph
+CHAPERONE_MORPH_TYPE=uuid
 ```
 - When all related models use UUID primary keys
 - Consistent UUID usage across application
 
 **ULID Morphs**
 ```env
-CHAPERONE_MORPH_TYPE=ulidMorph
+CHAPERONE_MORPH_TYPE=ulid
 ```
 - When all related models use ULID primary keys
 - Better index performance than UUIDs
 
 **Numeric Morphs**
 ```env
-CHAPERONE_MORPH_TYPE=numericMorph
+CHAPERONE_MORPH_TYPE=numeric
 ```
 - When related models use integer primary keys
 - Optimized storage and index performance
@@ -1983,7 +1983,7 @@ CHAPERONE_ALERTING_ENABLED=false
 ```env
 # Production environment
 CHAPERONE_PRIMARY_KEY_TYPE=ulid
-CHAPERONE_MORPH_TYPE=ulidMorph
+CHAPERONE_MORPH_TYPE=ulid
 
 # Strict supervision
 CHAPERONE_TIMEOUT=3600
@@ -2027,7 +2027,7 @@ CHAPERONE_DLQ_RETENTION_DAYS=90
 ```env
 # High-volume environment
 CHAPERONE_PRIMARY_KEY_TYPE=ulid
-CHAPERONE_MORPH_TYPE=ulidMorph
+CHAPERONE_MORPH_TYPE=ulid
 
 # Optimized supervision
 CHAPERONE_TIMEOUT=1800

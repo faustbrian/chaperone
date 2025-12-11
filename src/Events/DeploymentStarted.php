@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class DeploymentStarted
 {

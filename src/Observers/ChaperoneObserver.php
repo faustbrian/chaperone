@@ -13,6 +13,7 @@ use Cline\Chaperone\Database\Models\SupervisedJob;
 use Cline\Chaperone\Database\Models\SupervisedJobError;
 use Cline\Chaperone\DeadLetterQueue\DeadLetterQueueManager;
 use Illuminate\Support\Facades\Config;
+use RuntimeException;
 
 /**
  * Observer for broadcasting Chaperone supervision events to monitoring tools.
@@ -32,6 +33,7 @@ use Illuminate\Support\Facades\Config;
  * - chaperone.monitoring.horizon: Enable Horizon integration for queue monitoring
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class ChaperoneObserver
 {
@@ -45,8 +47,9 @@ final readonly class ChaperoneObserver
      * Initializes the monitoring recorders for Pulse, Telescope, and Horizon.
      * Each recorder handles the integration with its respective monitoring tool.
      */
-    public function __construct(private DeadLetterQueueManager $deadLetterQueueManager)
-    {
+    public function __construct(
+        private DeadLetterQueueManager $deadLetterQueueManager,
+    ) {
         $this->pulseRecorder = new PulseRecorder();
         $this->telescopeRecorder = new TelescopeRecorder();
     }
@@ -69,7 +72,7 @@ final readonly class ChaperoneObserver
         }
 
         $this->pulseRecorder->recordSupervisionStarted($job);
-        $this->telescopeRecorder->recordSupervisionStarted($job);
+        $this->telescopeRecorder->recordSupervisionStarted();
     }
 
     /**
@@ -96,13 +99,36 @@ final readonly class ChaperoneObserver
 
         if ($job->completed_at && $job->wasChanged('completed_at')) {
             $this->pulseRecorder->recordSupervisionEnded($job);
-            $this->telescopeRecorder->recordSupervisionEnded($job);
+            $this->telescopeRecorder->recordSupervisionEnded();
         }
 
         // Move to dead letter queue if job failed and exceeded max retries
-        if ($job->failed_at && $job->wasChanged('failed_at')) {
-            $this->handleJobFailure($job);
+        if (!$job->failed_at || !$job->wasChanged('failed_at')) {
+            return;
         }
+
+        $this->handleJobFailure($job);
+    }
+
+    /**
+     * Handle the supervised job deleted event.
+     *
+     * Records the supervision deletion event to monitoring tools when a
+     * supervised job record is removed from the database. This helps track
+     * cleanup operations and supervision lifecycle completeness.
+     *
+     * @param SupervisedJob $job The supervised job model instance that was deleted from
+     *                           the database. Contains job information for final audit
+     *                           trail recording before removal from active monitoring.
+     */
+    public function deleted(SupervisedJob $job): void
+    {
+        if (!Config::get('chaperone.monitoring.enabled', false)) {
+            return;
+        }
+
+        $this->pulseRecorder->recordSupervisionEnded($job);
+        $this->telescopeRecorder->recordSupervisionEnded();
     }
 
     /**
@@ -125,40 +151,23 @@ final readonly class ChaperoneObserver
         $maxRetries = (int) Config::get('chaperone.supervision.max_retries', 3);
 
         // Move to DLQ if exceeded max retries
-        if ($errorCount >= $maxRetries) {
-            // Get the most recent error to include in DLQ
-            $lastError = $job->errors()->latest('created_at')->first();
-
-            if ($lastError instanceof SupervisedJobError) {
-                // Create a throwable from the error record
-                $exception = new \RuntimeException(
-                    $lastError->message,
-                    0
-                );
-
-                $this->deadLetterQueueManager->moveToDeadLetterQueue($job, $exception);
-            }
-        }
-    }
-
-    /**
-     * Handle the supervised job deleted event.
-     *
-     * Records the supervision deletion event to monitoring tools when a
-     * supervised job record is removed from the database. This helps track
-     * cleanup operations and supervision lifecycle completeness.
-     *
-     * @param SupervisedJob $job The supervised job model instance that was deleted from
-     *                           the database. Contains job information for final audit
-     *                           trail recording before removal from active monitoring.
-     */
-    public function deleted(SupervisedJob $job): void
-    {
-        if (!Config::get('chaperone.monitoring.enabled', false)) {
+        if ($errorCount < $maxRetries) {
             return;
         }
 
-        $this->pulseRecorder->recordSupervisionEnded($job);
-        $this->telescopeRecorder->recordSupervisionEnded($job);
+        // Get the most recent error to include in DLQ
+        $lastError = $job->errors()->latest('created_at')->first();
+
+        if (!$lastError instanceof SupervisedJobError) {
+            return;
+        }
+
+        // Create a throwable from the error record
+        $exception = new RuntimeException(
+            $lastError->message,
+            0,
+        );
+
+        $this->deadLetterQueueManager->moveToDeadLetterQueue($job, $exception);
     }
 }

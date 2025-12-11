@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
-use Tests\TestCase;
+use Cline\CodingStandard\EasyCodingStandard\Factory;
 
-uses(TestCase::class)->in(__DIR__);
+return Factory::create(
+    paths: [__DIR__.'/src', __DIR__.'/tests'],
+);

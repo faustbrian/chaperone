@@ -9,12 +9,12 @@
 
 namespace Cline\Chaperone\Notifications;
 
-use Illuminate\Support\Facades\Date;
 use DateTimeImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Date;
 
 use function config;
 use function sprintf;
@@ -48,10 +48,10 @@ final class JobStuckNotification extends Notification
     /**
      * Create a new job stuck notification.
      *
-     * @param string                 $supervisionId  Unique identifier for the supervision session
-     * @param string                 $jobClass       Fully qualified class name of the stuck job
-     * @param int                    $stuckDuration  How long the job has been stuck in milliseconds
-     * @param DateTimeImmutable|null $lastHeartbeat  Timestamp of the last heartbeat received, if any
+     * @param string                 $supervisionId Unique identifier for the supervision session
+     * @param string                 $jobClass      Fully qualified class name of the stuck job
+     * @param int                    $stuckDuration How long the job has been stuck in milliseconds
+     * @param null|DateTimeImmutable $lastHeartbeat Timestamp of the last heartbeat received, if any
      */
     public function __construct(
         public readonly string $supervisionId,
@@ -62,7 +62,6 @@ final class JobStuckNotification extends Notification
 
     /**
      * Get the notification's delivery channels.
-     *
      *
      * @return array<int, string>
      */
@@ -76,12 +75,10 @@ final class JobStuckNotification extends Notification
      *
      * Creates a formatted email alert with details about the stuck job
      * including supervision ID, job class, stuck duration, and last heartbeat.
-     *
-     *
      */
     public function toMail(mixed $notifiable): MailMessage
     {
-        $stuckMinutes = (int) ($this->stuckDuration / 60000);
+        $stuckMinutes = (int) ($this->stuckDuration / 60_000);
         $lastHeartbeat = $this->lastHeartbeat?->format('Y-m-d H:i:s') ?? 'Never';
 
         return new MailMessage()
@@ -104,12 +101,11 @@ final class JobStuckNotification extends Notification
      *
      * Creates a formatted Slack message with details about the stuck job
      * using the configured webhook URL.
-     *
-     *
      */
     public function toSlack(mixed $notifiable): SlackMessage
     {
         $this->lastHeartbeat?->format('Y-m-d H:i:s') ?? 'Never';
+
         return new SlackMessage()
             ->error()
             ->to(config('chaperone.alerting.slack_webhook_url'))
@@ -121,7 +117,7 @@ final class JobStuckNotification extends Notification
                     ->fields([
                         'Supervision ID' => $this->supervisionId,
                         'Job Class' => $this->jobClass,
-                        'Stuck Duration' => sprintf('%d minutes', (int) ($this->stuckDuration / 60000)),
+                        'Stuck Duration' => sprintf('%d minutes', (int) ($this->stuckDuration / 60_000)),
                         'Last Heartbeat' => $this->lastHeartbeat?->format('Y-m-d H:i:s') ?? 'Never',
                     ])
                     ->footer('Chaperone Job Supervision')

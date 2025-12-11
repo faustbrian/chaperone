@@ -11,7 +11,9 @@ namespace Cline\Chaperone\Console\Commands;
 
 use Cline\Chaperone\DeadLetterQueue\DeadLetterQueueManager;
 use Illuminate\Console\Command;
+use Throwable;
 
+use function config;
 use function sprintf;
 
 /**
@@ -124,7 +126,7 @@ final class PruneDeadLetterQueueCommand extends Command
             );
 
             return self::SUCCESS;
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $this->components->error('Failed to prune dead letter queue entries.');
             $this->components->error($throwable->getMessage());
 

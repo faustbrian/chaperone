@@ -35,8 +35,8 @@ use Override;
  * @property string                    $exception         Exception class name
  * @property mixed                     $id                Primary key (auto-increment, UUID, or ULID)
  * @property string                    $message           Exception message
- * @property SupervisedJob             $supervisedJob     The supervised job that failed
  * @property mixed                     $supervised_job_id Foreign key to supervised_jobs table
+ * @property SupervisedJob             $supervisedJob     The supervised job that failed
  * @property string                    $trace             Stack trace
  *
  * @author Brian Faust <brian@cline.sh>

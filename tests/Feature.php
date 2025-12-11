@@ -1,11 +1,18 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 use Cline\Chaperone\Concerns\Supervised;
 use Cline\Chaperone\Facades\Chaperone;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 it('can supervise a job with heartbeats', function (): void {
-    $job = new class implements ShouldQueue
+    $job = new class() implements ShouldQueue
     {
         use Supervised;
 

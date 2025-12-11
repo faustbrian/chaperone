@@ -39,6 +39,7 @@ use DateTimeImmutable;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class CircuitBreakerOpened
 {

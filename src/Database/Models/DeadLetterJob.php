@@ -28,16 +28,16 @@ use Override;
  * allowing correlation with the full supervision history while surviving job record
  * deletion. The payload field stores the complete job data needed for retry attempts.
  *
- * @property mixed                    $id                 Primary key (auto-increment, UUID, or ULID)
- * @property null|string              $supervised_job_id  Foreign key to supervised job
- * @property null|SupervisedJob       $supervisedJob      Associated supervised job
- * @property string                   $job_class          Fully qualified job class name
- * @property string                   $exception          Exception class name
- * @property string                   $message            Exception message
- * @property string                   $trace              Stack trace
+ * @property string                    $exception         Exception class name
+ * @property Carbon                    $failed_at         When job was moved to DLQ
+ * @property mixed                     $id                Primary key (auto-increment, UUID, or ULID)
+ * @property string                    $job_class         Fully qualified job class name
+ * @property string                    $message           Exception message
  * @property null|array<string, mixed> $payload           Job payload for retry
- * @property Carbon                   $failed_at          When job was moved to DLQ
- * @property null|Carbon              $retried_at         When job was retried from DLQ
+ * @property null|Carbon               $retried_at        When job was retried from DLQ
+ * @property null|string               $supervised_job_id Foreign key to supervised job
+ * @property null|SupervisedJob        $supervisedJob     Associated supervised job
+ * @property string                    $trace             Stack trace
  *
  * @author Brian Faust <brian@cline.sh>
  */

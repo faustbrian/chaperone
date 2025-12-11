@@ -9,16 +9,22 @@
 
 namespace Cline\Chaperone\DeadLetterQueue;
 
-use Illuminate\Support\Facades\Date;
 use Cline\Chaperone\Database\Models\DeadLetterJob;
 use Cline\Chaperone\Database\Models\SupervisedJob;
 use Cline\Chaperone\Events\JobMovedToDeadLetterQueue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
+use RuntimeException;
 use Throwable;
 
+use function class_exists;
 use function config;
+use function dispatch;
+use function sprintf;
+use function throw_if;
+use function throw_unless;
 
 /**
  * Manages the dead letter queue for permanently failed jobs.
@@ -49,7 +55,7 @@ final class DeadLetterQueueManager
         /** @var class-string<DeadLetterJob> $model */
         $model = Config::get('chaperone.models.dead_letter_job', DeadLetterJob::class);
 
-        $model::create([
+        $model::query()->create([
             'supervised_job_id' => $job->id,
             'job_class' => $job->job_class,
             'exception' => $exception::class,
@@ -59,12 +65,14 @@ final class DeadLetterQueueManager
             'failed_at' => Date::now(),
         ]);
 
-        Event::dispatch(new JobMovedToDeadLetterQueue(
-            supervisionId: (string) $job->id,
-            jobClass: $job->job_class,
-            exception: $exception,
-            failedAt: Date::now(),
-        ));
+        Event::dispatch(
+            new JobMovedToDeadLetterQueue(
+                supervisionId: (string) $job->id,
+                jobClass: $job->job_class,
+                exception: $exception,
+                failedAt: Date::now(),
+            )
+        );
     }
 
     /**
@@ -75,19 +83,19 @@ final class DeadLetterQueueManager
      *
      * @param string $deadLetterId The ID of the dead letter entry to retry
      *
-     * @throws \RuntimeException If the dead letter entry doesn't exist or cannot be retried
+     * @throws RuntimeException If the dead letter entry doesn't exist or cannot be retried
      */
     public function retry(string $deadLetterId): void
     {
         $deadLetterJob = $this->get($deadLetterId);
 
-        throw_if($deadLetterJob === null, \RuntimeException::class, sprintf('Dead letter job %s not found', $deadLetterId));
+        throw_if($deadLetterJob === null, RuntimeException::class, sprintf('Dead letter job %s not found', $deadLetterId));
 
         /** @var class-string<DeadLetterJob> $model */
         $model = Config::get('chaperone.models.dead_letter_job', DeadLetterJob::class);
 
         /** @var DeadLetterJob $entry */
-        $entry = $model::findOrFail($deadLetterId);
+        $entry = $model::query()->findOrFail($deadLetterId);
 
         // Mark as retried
         $entry->update([
@@ -97,10 +105,12 @@ final class DeadLetterQueueManager
         // Re-dispatch the job (implementation depends on job class and payload structure)
         $jobClass = $entry->job_class;
 
-        throw_unless(\class_exists($jobClass), \RuntimeException::class, sprintf('Job class %s does not exist', $jobClass));
+        throw_unless(class_exists($jobClass), RuntimeException::class, sprintf('Job class %s does not exist', $jobClass));
 
         // Dispatch the job with the stored payload
-        dispatch(new $jobClass(...($entry->payload ?? [])));
+        dispatch(
+            new $jobClass(...($entry->payload ?? []))
+        );
     }
 
     /**
@@ -126,7 +136,7 @@ final class DeadLetterQueueManager
         /** @var class-string<DeadLetterJob> $model */
         $model = Config::get('chaperone.models.dead_letter_job', DeadLetterJob::class);
 
-        return $model::where('failed_at', '<', $cutoff)->delete();
+        return $model::query()->where('failed_at', '<', $cutoff)->delete();
     }
 
     /**
@@ -141,7 +151,7 @@ final class DeadLetterQueueManager
         /** @var class-string<DeadLetterJob> $model */
         $model = Config::get('chaperone.models.dead_letter_job', DeadLetterJob::class);
 
-        $entry = $model::find($deadLetterId);
+        $entry = $model::query()->find($deadLetterId);
 
         if ($entry === null) {
             return null;
@@ -189,6 +199,6 @@ final class DeadLetterQueueManager
         /** @var class-string<DeadLetterJob> $model */
         $model = Config::get('chaperone.models.dead_letter_job', DeadLetterJob::class);
 
-        return $model::count();
+        return $model::query()->count();
     }
 }

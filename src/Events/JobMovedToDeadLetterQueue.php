@@ -40,6 +40,7 @@ use Throwable;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class JobMovedToDeadLetterQueue
 {

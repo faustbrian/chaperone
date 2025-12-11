@@ -15,7 +15,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 
+use function array_filter;
+use function array_values;
 use function config;
+use function end;
+use function in_array;
 
 /**
  * Manages health checks for supervised jobs.
@@ -86,14 +90,18 @@ final class HealthCheckManager implements HealthMonitor
 
         $this->recordHealth($jobId, $healthData);
 
-        if (!$wasHealthy) {
-            Event::dispatch(new HealthStatusChanged(
+        if ($wasHealthy) {
+            return;
+        }
+
+        Event::dispatch(
+            new HealthStatusChanged(
                 $jobId,
                 self::STATUS_HEALTHY,
                 $previousHealth['status'] ?? self::STATUS_UNKNOWN,
                 null,
-            ));
-        }
+            )
+        );
     }
 
     /**
@@ -124,14 +132,18 @@ final class HealthCheckManager implements HealthMonitor
 
         $this->recordHealth($jobId, $healthData);
 
-        if (!$wasUnhealthy) {
-            Event::dispatch(new HealthStatusChanged(
+        if ($wasUnhealthy) {
+            return;
+        }
+
+        Event::dispatch(
+            new HealthStatusChanged(
                 $jobId,
                 self::STATUS_UNHEALTHY,
                 $previousHealth['status'] ?? self::STATUS_UNKNOWN,
                 $reason,
-            ));
-        }
+            )
+        );
     }
 
     /**
@@ -140,7 +152,7 @@ final class HealthCheckManager implements HealthMonitor
      * Returns comprehensive health status including current state, reason for
      * unhealthy status, timestamps, and check history.
      *
-     * @param  string                                                                                                       $jobId Job or supervision identifier
+     * @param  string                                                                                                                             $jobId Job or supervision identifier
      * @return array{status: string, reason: null|string, updated_at: null|string, job_id: string, check_count: int, first_unhealthy_at?: string} Health status data
      */
     public function getHealth(string $jobId): array
@@ -179,9 +191,11 @@ final class HealthCheckManager implements HealthMonitor
         foreach ($index as $jobId) {
             $health = $this->getHealth($jobId);
 
-            if ($health['status'] !== self::STATUS_UNKNOWN) {
-                $allHealth[$jobId] = $health;
+            if ($health['status'] === self::STATUS_UNKNOWN) {
+                continue;
             }
+
+            $allHealth[$jobId] = $health;
         }
 
         return $allHealth;
@@ -230,6 +244,7 @@ final class HealthCheckManager implements HealthMonitor
         }
 
         $lastHeartbeat = Date::parse($heartbeatData['last_heartbeat_at']);
+
         /** @var int $interval */
         $interval = $heartbeatData['metadata']['heartbeat_interval']
             ?? config('chaperone.supervision.heartbeat_interval_seconds', 30);
@@ -250,7 +265,7 @@ final class HealthCheckManager implements HealthMonitor
             if ($latestViolation !== false) {
                 $this->markUnhealthy(
                     $jobId,
-                    'Resource violation: ' . $latestViolation['resource_type'],
+                    'Resource violation: '.$latestViolation['resource_type'],
                 );
 
                 return;
@@ -305,13 +320,13 @@ final class HealthCheckManager implements HealthMonitor
      * Persists health information with TTL and maintains the health index
      * for efficient querying of all tracked jobs.
      *
-     * @param string                                                                                                        $jobId      Job or supervision identifier
+     * @param string                                                                                                                        $jobId      Job or supervision identifier
      * @param array{status: string, reason: null|string, updated_at: string, job_id: string, check_count: int, first_unhealthy_at?: string} $healthData Health status information
      */
     private function recordHealth(string $jobId, array $healthData): void
     {
         /** @var int $ttl */
-        $ttl = config('chaperone.supervision.health_ttl_seconds', 3600);
+        $ttl = config('chaperone.supervision.health_ttl_seconds', 3_600);
 
         Cache::put(self::HEALTH_PREFIX.$jobId, $healthData, $ttl);
 
@@ -319,9 +334,11 @@ final class HealthCheckManager implements HealthMonitor
         /** @var array<string> $index */
         $index = Cache::get(self::HEALTH_INDEX_KEY, []);
 
-        if (!\in_array($jobId, $index, true)) {
-            $index[] = $jobId;
-            Cache::put(self::HEALTH_INDEX_KEY, $index);
+        if (in_array($jobId, $index, true)) {
+            return;
         }
+
+        $index[] = $jobId;
+        Cache::put(self::HEALTH_INDEX_KEY, $index);
     }
 }

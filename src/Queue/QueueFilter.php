@@ -25,6 +25,7 @@ use function in_array;
  * - excluded_queues always takes precedence over supervised_queues
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class QueueFilter
 {

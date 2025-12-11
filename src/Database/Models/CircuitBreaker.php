@@ -29,15 +29,15 @@ use Override;
  * The state transitions between Closed (normal), Open (blocking), and
  * HalfOpen (testing recovery).
  *
- * @property Carbon                $created_at        Record creation timestamp
- * @property int                   $failure_count     Consecutive failure count
- * @property mixed                 $id                Primary key (auto-increment, UUID, or ULID)
- * @property null|Carbon           $last_failure_at   When last failure occurred
- * @property null|Carbon           $last_success_at   When last success occurred
- * @property null|Carbon           $opened_at         When circuit was opened
- * @property string                $service_name      Protected service identifier
- * @property CircuitBreakerState   $state             Circuit breaker state
- * @property Carbon                $updated_at        Record update timestamp
+ * @property Carbon              $created_at      Record creation timestamp
+ * @property int                 $failure_count   Consecutive failure count
+ * @property mixed               $id              Primary key (auto-increment, UUID, or ULID)
+ * @property null|Carbon         $last_failure_at When last failure occurred
+ * @property null|Carbon         $last_success_at When last success occurred
+ * @property null|Carbon         $opened_at       When circuit was opened
+ * @property string              $service_name    Protected service identifier
+ * @property CircuitBreakerState $state           Circuit breaker state
+ * @property Carbon              $updated_at      Record update timestamp
  *
  * @author Brian Faust <brian@cline.sh>
  */

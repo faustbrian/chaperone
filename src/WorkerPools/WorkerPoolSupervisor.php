@@ -9,8 +9,14 @@
 
 namespace Cline\Chaperone\WorkerPools;
 
-use Illuminate\Support\Sleep;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Sleep;
+use InvalidArgumentException;
+use RuntimeException;
+
+use function sprintf;
+use function throw_if;
+use function uniqid;
 
 /**
  * Supervises a pool of queue workers with health monitoring and automatic restart.
@@ -23,39 +29,25 @@ use Illuminate\Support\Collection;
  */
 final class WorkerPoolSupervisor
 {
-    /**
-     * @var Collection<int, Worker> Collection of workers in this pool
-     */
+    /** @var Collection<int, Worker> Collection of workers in this pool */
     private Collection $workers;
 
-    /**
-     * @var int Number of workers to maintain
-     */
+    /** @var int Number of workers to maintain */
     private int $workerCount = 1;
 
-    /**
-     * @var string Queue name to supervise
-     */
+    /** @var string Queue name to supervise */
     private string $queueName = 'default';
 
-    /**
-     * @var null|callable Health check callback: fn(Worker): bool
-     */
+    /** @var null|callable Health check callback: fn(Worker): bool */
     private $healthCheckCallback;
 
-    /**
-     * @var null|callable Unhealthy worker callback: fn(Worker): void
-     */
+    /** @var null|callable Unhealthy worker callback: fn(Worker): void */
     private $unhealthyCallback;
 
-    /**
-     * @var null|callable Worker crash callback: fn(Worker): void
-     */
+    /** @var null|callable Worker crash callback: fn(Worker): void */
     private $crashCallback;
 
-    /**
-     * @var bool Whether supervision is currently running
-     */
+    /** @var bool Whether supervision is currently running */
     private bool $supervising = false;
 
     /**
@@ -77,7 +69,7 @@ final class WorkerPoolSupervisor
      */
     public function workers(int $count): self
     {
-        throw_if($count < 1, \InvalidArgumentException::class, 'Worker count must be at least 1');
+        throw_if($count < 1, InvalidArgumentException::class, 'Worker count must be at least 1');
 
         $this->workerCount = $count;
 
@@ -177,13 +169,12 @@ final class WorkerPoolSupervisor
      * health. Runs in a loop, checking worker status and restarting failed
      * workers as needed. This method blocks until supervision is stopped.
      *
-     *
-     * @throws \RuntimeException If supervision is already running
+     * @throws RuntimeException If supervision is already running
      */
     public function supervise(): void
     {
         if ($this->supervising) {
-            throw new \RuntimeException(sprintf('Pool %s is already supervising', $this->name));
+            throw new RuntimeException(sprintf('Pool %s is already supervising', $this->name));
         }
 
         $this->supervising = true;
@@ -196,7 +187,7 @@ final class WorkerPoolSupervisor
         // Supervision loop
         while ($this->supervising) {
             $this->checkWorkers();
-            Sleep::usleep(1000000); // Check every second
+            Sleep::usleep(1_000_000); // Check every second
         }
     }
 
@@ -278,7 +269,7 @@ final class WorkerPoolSupervisor
     private function spawnWorker(): void
     {
         $worker = new Worker(
-            id: $this->name . '-worker-'.\uniqid(),
+            id: $this->name.'-worker-'.uniqid(),
             queueName: $this->queueName,
             healthCheckCallback: $this->healthCheckCallback,
         );
@@ -314,13 +305,15 @@ final class WorkerPoolSupervisor
             }
 
             // Run health check
-            if (!$worker->healthCheck()) {
-                if ($this->unhealthyCallback) {
-                    ($this->unhealthyCallback)($worker);
-                } else {
-                    // Default action: restart unhealthy worker
-                    $worker->restart();
-                }
+            if ($worker->healthCheck()) {
+                continue;
+            }
+
+            if ($this->unhealthyCallback) {
+                ($this->unhealthyCallback)($worker);
+            } else {
+                // Default action: restart unhealthy worker
+                $worker->restart();
             }
         }
     }

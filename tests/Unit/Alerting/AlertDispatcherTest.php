@@ -1,5 +1,12 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tests\Unit\Alerting;
 
 use Carbon\CarbonImmutable;
@@ -16,21 +23,28 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use Tests\TestCase;
+use TypeError;
 
+use function resolve;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ * @internal
+ */
 #[CoversClass(AlertDispatcher::class)]
-#[Small]
+#[Small()]
 final class AlertDispatcherTest extends TestCase
 {
-
     private AlertDispatcher $alertDispatcher;
 
-    #[\Override]
+    #[Override()]
     protected function setUp(): void
     {
         parent::setUp();
@@ -41,20 +55,20 @@ final class AlertDispatcherTest extends TestCase
         Event::fake();
 
         // Create real Dispatcher implementation
-        $eventDispatcher = app(Dispatcher::class);
+        $eventDispatcher = resolve(Dispatcher::class);
 
         // Create AlertDispatcher with real event dispatcher
         $this->alertDispatcher = new AlertDispatcher($eventDispatcher);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Registers JobStuck event listener on construction')]
     #[Group('happy-path')]
-    public function registersJobStuckListener(): void
+    public function registers_job_stuck_listener(): void
     {
         // Arrange
         $listeners = [];
-        $eventDispatcher = app(Dispatcher::class);
+        $eventDispatcher = resolve(Dispatcher::class);
         $eventDispatcher->listen(JobStuck::class, function () use (&$listeners): void {
             $listeners[] = JobStuck::class;
         });
@@ -66,13 +80,13 @@ final class AlertDispatcherTest extends TestCase
         $this->assertNotEmpty($eventDispatcher->getListeners(JobStuck::class));
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Registers JobTimeout event listener on construction')]
     #[Group('happy-path')]
-    public function registersJobTimeoutListener(): void
+    public function registers_job_timeout_listener(): void
     {
         // Arrange
-        $eventDispatcher = app(Dispatcher::class);
+        $eventDispatcher = resolve(Dispatcher::class);
 
         // Act
         new AlertDispatcher($eventDispatcher);
@@ -81,13 +95,13 @@ final class AlertDispatcherTest extends TestCase
         $this->assertNotEmpty($eventDispatcher->getListeners(JobTimeout::class));
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Registers CircuitBreakerOpened event listener on construction')]
     #[Group('happy-path')]
-    public function registersCircuitBreakerOpenedListener(): void
+    public function registers_circuit_breaker_opened_listener(): void
     {
         // Arrange
-        $eventDispatcher = app(Dispatcher::class);
+        $eventDispatcher = resolve(Dispatcher::class);
 
         // Act
         new AlertDispatcher($eventDispatcher);
@@ -96,13 +110,13 @@ final class AlertDispatcherTest extends TestCase
         $this->assertNotEmpty($eventDispatcher->getListeners(CircuitBreakerOpened::class));
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Registers ResourceViolationDetected event listener on construction')]
     #[Group('happy-path')]
-    public function registersResourceViolationListener(): void
+    public function registers_resource_violation_listener(): void
     {
         // Arrange
-        $eventDispatcher = app(Dispatcher::class);
+        $eventDispatcher = resolve(Dispatcher::class);
 
         // Act
         new AlertDispatcher($eventDispatcher);
@@ -111,10 +125,10 @@ final class AlertDispatcherTest extends TestCase
         $this->assertNotEmpty($eventDispatcher->getListeners(ResourceViolationDetected::class));
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Sends job stuck alert when enabled and not rate limited')]
     #[Group('happy-path')]
-    public function sendsJobStuckAlertWhenEnabledAndNotRateLimited(): void
+    public function sends_job_stuck_alert_when_enabled_and_not_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -125,7 +139,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -133,10 +147,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertSentOnDemand(JobStuckNotification::class);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips job stuck alert when alerting is disabled in config')]
     #[Group('sad-path')]
-    public function sendJobStuckAlertSkipsWhenAlertingDisabled(): void
+    public function send_job_stuck_alert_skips_when_alerting_disabled(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', false);
@@ -147,7 +161,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -155,10 +169,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips job stuck alert when rate limited within 5 minutes')]
     #[Group('edge-case')]
-    public function sendJobStuckAlertSkipsWhenRateLimited(): void
+    public function send_job_stuck_alert_skips_when_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -170,7 +184,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -178,10 +192,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Records rate limit in cache after sending job stuck alert')]
     #[Group('happy-path')]
-    public function sendJobStuckAlertRecordsRateLimitAfterSending(): void
+    public function send_job_stuck_alert_records_rate_limit_after_sending(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -192,7 +206,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -200,10 +214,10 @@ final class AlertDispatcherTest extends TestCase
         $this->assertTrue(Cache::has('chaperone:alert_sent:job_stuck:supervision-123'));
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Sends job timeout alert when enabled and not rate limited')]
     #[Group('happy-path')]
-    public function sendJobTimeoutAlertWhenEnabledAndNotRateLimited(): void
+    public function send_job_timeout_alert_when_enabled_and_not_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -215,17 +229,17 @@ final class AlertDispatcherTest extends TestCase
             'supervision-456',
             'App\\Jobs\\ImportData',
             60,
-            65000,
+            65_000,
         );
 
         // Assert
         Notification::assertSentOnDemand(JobTimeoutNotification::class);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips job timeout alert when alerting is disabled')]
     #[Group('sad-path')]
-    public function sendJobTimeoutAlertSkipsWhenAlertingDisabled(): void
+    public function send_job_timeout_alert_skips_when_alerting_disabled(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', false);
@@ -237,17 +251,17 @@ final class AlertDispatcherTest extends TestCase
             'supervision-456',
             'App\\Jobs\\ImportData',
             60,
-            65000,
+            65_000,
         );
 
         // Assert
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips job timeout alert when rate limited within 5 minutes')]
     #[Group('edge-case')]
-    public function sendJobTimeoutAlertSkipsWhenRateLimited(): void
+    public function send_job_timeout_alert_skips_when_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -260,17 +274,17 @@ final class AlertDispatcherTest extends TestCase
             'supervision-456',
             'App\\Jobs\\ImportData',
             60,
-            65000,
+            65_000,
         );
 
         // Assert
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Sends circuit breaker alert when enabled and not rate limited')]
     #[Group('happy-path')]
-    public function sendCircuitBreakerOpenedAlertWhenEnabledAndNotRateLimited(): void
+    public function send_circuit_breaker_opened_alert_when_enabled_and_not_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -288,10 +302,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertSentOnDemand(CircuitBreakerOpenedNotification::class);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips circuit breaker alert when alerting is disabled')]
     #[Group('sad-path')]
-    public function sendCircuitBreakerOpenedAlertSkipsWhenAlertingDisabled(): void
+    public function send_circuit_breaker_opened_alert_skips_when_alerting_disabled(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', false);
@@ -309,10 +323,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips circuit breaker alert when rate limited within 5 minutes')]
     #[Group('edge-case')]
-    public function sendCircuitBreakerOpenedAlertSkipsWhenRateLimited(): void
+    public function send_circuit_breaker_opened_alert_skips_when_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -331,10 +345,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Documents TypeError bug in resource violation alert parameters')]
     #[Group('sad-path')]
-    public function sendResourceViolationAlertWhenEnabledAndNotRateLimited(): void
+    public function send_resource_violation_alert_when_enabled_and_not_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -344,7 +358,7 @@ final class AlertDispatcherTest extends TestCase
         // Act & Assert - BUG: AlertDispatcher passes wrong parameters to ResourceViolationNotification
         // It passes (supervisionId, jobClass, violationType, actual, limit) but notification expects
         // (supervisionId, violationType, limit, actual). This test documents the current buggy behavior.
-        $this->expectException(\TypeError::class);
+        $this->expectException(TypeError::class);
 
         $this->alertDispatcher->sendResourceViolationAlert(
             'supervision-789',
@@ -355,10 +369,10 @@ final class AlertDispatcherTest extends TestCase
         );
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips resource violation alert when alerting is disabled')]
     #[Group('sad-path')]
-    public function sendResourceViolationAlertSkipsWhenAlertingDisabled(): void
+    public function send_resource_violation_alert_skips_when_alerting_disabled(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', false);
@@ -378,10 +392,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips resource violation alert when rate limited')]
     #[Group('edge-case')]
-    public function sendResourceViolationAlertSkipsWhenRateLimited(): void
+    public function send_resource_violation_alert_skips_when_rate_limited(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -402,10 +416,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Uses composite key (supervisionId:violationType) for rate limiting')]
     #[Group('edge-case')]
-    public function resourceViolationUsesCompositeKeyForRateLimiting(): void
+    public function resource_violation_uses_composite_key_for_rate_limiting(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -426,7 +440,7 @@ final class AlertDispatcherTest extends TestCase
         );
 
         // CPU violation should attempt to send (different key), but will hit TypeError
-        $this->expectException(\TypeError::class);
+        $this->expectException(TypeError::class);
         $this->alertDispatcher->sendResourceViolationAlert(
             'supervision-789',
             'App\\Jobs\\ProcessImage',
@@ -436,10 +450,10 @@ final class AlertDispatcherTest extends TestCase
         );
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips notifications when recipients array is empty')]
     #[Group('sad-path')]
-    public function notificationsSkipWhenRecipientsEmpty(): void
+    public function notifications_skip_when_recipients_empty(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -450,7 +464,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -458,10 +472,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Skips notifications when recipients config is null')]
     #[Group('sad-path')]
-    public function notificationsSkipWhenRecipientsNull(): void
+    public function notifications_skip_when_recipients_null(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -472,7 +486,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -480,10 +494,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Filters recipients array to remove empty and null values')]
     #[Group('edge-case')]
-    public function recipientsArrayFilteredToRemoveEmptyValues(): void
+    public function recipients_array_filtered_to_remove_empty_values(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -494,7 +508,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -502,10 +516,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertSentOnDemand(JobStuckNotification::class);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Handles null lastHeartbeat parameter in job stuck alert')]
     #[Group('edge-case')]
-    public function jobStuckAlertHandlesNullLastHeartbeat(): void
+    public function job_stuck_alert_handles_null_last_heartbeat(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -516,7 +530,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             null,
         );
 
@@ -524,10 +538,10 @@ final class AlertDispatcherTest extends TestCase
         Notification::assertSentOnDemand(JobStuckNotification::class);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Allows different supervision IDs to send alerts simultaneously')]
     #[Group('edge-case')]
-    public function differentSupervisionIdsCanSendAlertsSimultaneously(): void
+    public function different_supervision_ids_can_send_alerts_simultaneously(): void
     {
         // Arrange
         Config::set('chaperone.alerting.enabled', true);
@@ -538,7 +552,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-123',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 
@@ -546,7 +560,7 @@ final class AlertDispatcherTest extends TestCase
         $this->alertDispatcher->sendJobStuckAlert(
             'supervision-456',
             'App\\Jobs\\ProcessOrder',
-            300000,
+            300_000,
             CarbonImmutable::parse('2024-01-01 12:00:00'),
         );
 

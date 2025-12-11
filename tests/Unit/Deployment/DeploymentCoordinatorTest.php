@@ -1,5 +1,12 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Tests\Unit\Deployment;
 
 use Cline\Chaperone\Deployment\DeploymentCoordinator;
@@ -10,8 +17,12 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ * @internal
+ */
 #[CoversClass(DeploymentCoordinator::class)]
-#[Small]
+#[Small()]
 final class DeploymentCoordinatorTest extends TestCase
 {
     private DeploymentCoordinator $coordinator;
@@ -24,10 +35,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->coordinator = new DeploymentCoordinator();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('drainQueues returns self for method chaining')]
     #[Group('happy-path')]
-    public function drainQueuesReturnsSelfForMethodChaining(): void
+    public function drain_queues_returns_self_for_method_chaining(): void
     {
         // Arrange
         $queues = ['default', 'emails'];
@@ -39,10 +50,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('waitForCompletion returns self for method chaining')]
     #[Group('happy-path')]
-    public function waitForCompletionReturnsSelfForMethodChaining(): void
+    public function wait_for_completion_returns_self_for_method_chaining(): void
     {
         // Arrange
         $timeout = 600;
@@ -54,10 +65,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('cancelLongRunning returns self for method chaining')]
     #[Group('happy-path')]
-    public function cancelLongRunningReturnsSelfForMethodChaining(): void
+    public function cancel_long_running_returns_self_for_method_chaining(): void
     {
         // Arrange
         // (coordinator already set up in setUp)
@@ -69,10 +80,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('onTimeout returns self for method chaining')]
     #[Group('happy-path')]
-    public function onTimeoutReturnsSelfForMethodChaining(): void
+    public function on_timeout_returns_self_for_method_chaining(): void
     {
         // Arrange
         $callback = function (): void {};
@@ -84,10 +95,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('All fluent methods can be chained together')]
     #[Group('edge-case')]
-    public function allFluentMethodsCanBeChainedTogether(): void
+    public function all_fluent_methods_can_be_chained_together(): void
     {
         // Arrange
         $queues = ['default', 'emails'];
@@ -105,10 +116,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('drainQueues accepts empty array')]
     #[Group('edge-case')]
-    public function drainQueuesAcceptsEmptyArray(): void
+    public function drain_queues_accepts_empty_array(): void
     {
         // Arrange
         $queues = [];
@@ -120,10 +131,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('drainQueues accepts multiple queue names')]
     #[Group('happy-path')]
-    public function drainQueuesAcceptsMultipleQueueNames(): void
+    public function drain_queues_accepts_multiple_queue_names(): void
     {
         // Arrange
         $queues = ['default', 'emails', 'notifications', 'reports'];
@@ -135,13 +146,13 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('waitForCompletion accepts positive timeout value')]
     #[Group('happy-path')]
-    public function waitForCompletionAcceptsPositiveTimeoutValue(): void
+    public function wait_for_completion_accepts_positive_timeout_value(): void
     {
         // Arrange
-        $timeout = 1800;
+        $timeout = 1_800;
 
         // Act
         $result = $this->coordinator->waitForCompletion($timeout);
@@ -150,10 +161,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('waitForCompletion accepts zero timeout value')]
     #[Group('edge-case')]
-    public function waitForCompletionAcceptsZeroTimeoutValue(): void
+    public function wait_for_completion_accepts_zero_timeout_value(): void
     {
         // Arrange
         $timeout = 0;
@@ -165,13 +176,13 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('onTimeout accepts callable')]
     #[Group('happy-path')]
-    public function onTimeoutAcceptsCallable(): void
+    public function on_timeout_accepts_callable(): void
     {
         // Arrange
-        $callback = fn($jobs): null => null;
+        $callback = fn ($jobs): null => null;
 
         // Act
         $result = $this->coordinator->onTimeout($callback);
@@ -180,14 +191,14 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('onTimeout can be called multiple times')]
     #[Group('edge-case')]
-    public function onTimeoutCanBeCalledMultipleTimes(): void
+    public function on_timeout_can_be_called_multiple_times(): void
     {
         // Arrange
-        $firstCallback = fn(): string => 'first';
-        $secondCallback = fn(): string => 'second';
+        $firstCallback = fn (): string => 'first';
+        $secondCallback = fn (): string => 'second';
 
         // Act
         $result = $this->coordinator
@@ -198,10 +209,10 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('cancelLongRunning can be called multiple times')]
     #[Group('edge-case')]
-    public function cancelLongRunningCanBeCalledMultipleTimes(): void
+    public function cancel_long_running_can_be_called_multiple_times(): void
     {
         // Arrange
         // (coordinator already set up in setUp)
@@ -215,15 +226,15 @@ final class DeploymentCoordinatorTest extends TestCase
         $this->assertSame($this->coordinator, $result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Methods can be called in any order')]
     #[Group('edge-case')]
-    public function methodsCanBeCalledInAnyOrder(): void
+    public function methods_can_be_called_in_any_order(): void
     {
         // Arrange
         $queues = ['default'];
         $timeout = 300;
-        $callback = fn(): null => null;
+        $callback = fn (): null => null;
 
         // Act
         $result = $this->coordinator

@@ -40,16 +40,17 @@ use DateTimeImmutable;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class JobStuck
 {
     /**
      * Create a new job stuck event.
      *
-     * @param string                 $supervisionId  Unique identifier for the supervision session
-     * @param string                 $jobId          The job instance identifier that is stuck
-     * @param int                    $stuckDuration  How long the job has been stuck in milliseconds
-     * @param DateTimeImmutable|null $lastHeartbeat  Timestamp of the last heartbeat received, if any
+     * @param string                 $supervisionId Unique identifier for the supervision session
+     * @param string                 $jobId         The job instance identifier that is stuck
+     * @param int                    $stuckDuration How long the job has been stuck in milliseconds
+     * @param null|DateTimeImmutable $lastHeartbeat Timestamp of the last heartbeat received, if any
      */
     public function __construct(
         public string $supervisionId,

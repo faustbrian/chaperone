@@ -25,9 +25,8 @@ namespace Cline\Chaperone\Enums;
  * $table->uuidMorphs('owner');  // Creates owner_type and owner_id columns
  * ```
  *
- * @see https://laravel.com/docs/migrations#column-method-morphs
- *
  * @author Brian Faust <brian@cline.sh>
+ * @see https://laravel.com/docs/migrations#column-method-morphs
  */
 enum MorphType: string
 {

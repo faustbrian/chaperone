@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 
 use function array_key_exists;
+use function throw_if;
 
 /**
  * Validates polymorphic morph key mappings for models.
@@ -37,7 +38,7 @@ final class MorphKeyValidator
      * This validation ensures database consistency by preventing models with incorrect
      * or missing key configurations from being stored in polymorphic relationships.
      *
-     * @param Model  $model     The model instance to validate
+     * @param Model $model The model instance to validate
      *
      * @throws MorphKeyViolationException When enforcement is enabled and model lacks mapping
      */
@@ -57,9 +58,11 @@ final class MorphKeyValidator
         // If model is in either mapping, verify the key column matches
         $expectedColumn = $enforceMorphKeyMap[$class] ?? $morphKeyMap[$class] ?? null;
 
-        if ($expectedColumn !== null) {
-            $actualColumn = $model->getKeyName();
-            throw_if($actualColumn !== $expectedColumn, MorphKeyViolationException::class, $class);
+        if ($expectedColumn === null) {
+            return;
         }
+
+        $actualColumn = $model->getKeyName();
+        throw_if($actualColumn !== $expectedColumn, MorphKeyViolationException::class, $class);
     }
 }

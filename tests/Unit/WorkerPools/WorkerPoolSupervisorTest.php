@@ -1,10 +1,16 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 use Cline\Chaperone\WorkerPools\WorkerPoolSupervisor;
 
 describe('WorkerPoolSupervisor', function (): void {
     describe('Happy Paths', function (): void {
-
         test('constructor creates supervisor with name', function (): void {
             // Arrange
             $name = 'test-pool';
@@ -15,7 +21,6 @@ describe('WorkerPoolSupervisor', function (): void {
             // Assert
             expect($supervisor->getName())->toBe($name);
         });
-
 
         test('workers() sets worker count', function (): void {
             // Arrange
@@ -29,7 +34,6 @@ describe('WorkerPoolSupervisor', function (): void {
                 ->and($supervisor->getStatus()['worker_count'])->toBe(5);
         });
 
-
         test('queue() sets queue name', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -40,7 +44,6 @@ describe('WorkerPoolSupervisor', function (): void {
             // Assert
             expect($result)->toBe($supervisor);
         });
-
 
         test('withHealthCheck() registers callback', function (): void {
             // Arrange
@@ -54,7 +57,6 @@ describe('WorkerPoolSupervisor', function (): void {
             expect($result)->toBe($supervisor);
         });
 
-
         test('onUnhealthy() registers callback', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -67,7 +69,6 @@ describe('WorkerPoolSupervisor', function (): void {
             expect($result)->toBe($supervisor);
         });
 
-
         test('onCrash() registers callback', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -79,7 +80,6 @@ describe('WorkerPoolSupervisor', function (): void {
             // Assert
             expect($result)->toBe($supervisor);
         });
-
 
         test('getStatus() returns pool information', function (): void {
             // Arrange
@@ -96,7 +96,6 @@ describe('WorkerPoolSupervisor', function (): void {
                 ->and($status['worker_count'])->toBe(3)
                 ->and($status['workers'])->toBeArray();
         });
-
 
         test('fluent chaining works', function (): void {
             // Arrange
@@ -116,7 +115,6 @@ describe('WorkerPoolSupervisor', function (): void {
     });
 
     describe('Sad Paths', function (): void {
-
         test('workers() rejects count less than 1', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -126,7 +124,6 @@ describe('WorkerPoolSupervisor', function (): void {
                 ->toThrow(InvalidArgumentException::class, 'Worker count must be at least 1');
         });
 
-
         test('workers() rejects negative count', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -135,7 +132,6 @@ describe('WorkerPoolSupervisor', function (): void {
             expect(fn (): WorkerPoolSupervisor => $supervisor->workers(-5))
                 ->toThrow(InvalidArgumentException::class, 'Worker count must be at least 1');
         });
-
 
         test('supervise() throws if already supervising', function (): void {
             // Arrange
@@ -149,7 +145,6 @@ describe('WorkerPoolSupervisor', function (): void {
     });
 
     describe('Edge Cases', function (): void {
-
         test('stop() with no workers', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -161,7 +156,6 @@ describe('WorkerPoolSupervisor', function (): void {
             expect($supervisor->getStatus()['workers'])->toBeEmpty();
         });
 
-
         test('stop() clears workers collection', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -172,7 +166,6 @@ describe('WorkerPoolSupervisor', function (): void {
             // Assert
             expect($supervisor->getStatus()['workers'])->toBeEmpty();
         });
-
 
         test('getStatus() with default worker count', function (): void {
             // Arrange
@@ -186,7 +179,6 @@ describe('WorkerPoolSupervisor', function (): void {
                 ->and($status['workers'])->toBeEmpty();
         });
 
-
         test('workers(1) sets minimum valid count', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -199,7 +191,6 @@ describe('WorkerPoolSupervisor', function (): void {
                 ->and($supervisor->getStatus()['worker_count'])->toBe(1);
         });
 
-
         test('queue() with empty string', function (): void {
             // Arrange
             $supervisor = new WorkerPoolSupervisor('test-pool');
@@ -210,7 +201,6 @@ describe('WorkerPoolSupervisor', function (): void {
             // Assert
             expect($result)->toBe($supervisor);
         });
-
 
         test('multiple callback registrations', function (): void {
             // Arrange

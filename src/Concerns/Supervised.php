@@ -12,7 +12,9 @@ namespace Cline\Chaperone\Concerns;
 use Cline\Chaperone\Supervisors\HeartbeatMonitor;
 use Illuminate\Support\Str;
 
-use function app;
+use function array_merge;
+use function resolve;
+use function round;
 
 /**
  * Enables Laravel queue jobs to be automatically supervised by Chaperone.
@@ -92,7 +94,7 @@ trait Supervised
      */
     public function heartbeat(array $metadata = []): void
     {
-        app(HeartbeatMonitor::class)->recordHeartbeat($this->supervisionId, $metadata);
+        resolve(HeartbeatMonitor::class)->recordHeartbeat($this->supervisionId, $metadata);
     }
 
     /**

@@ -43,16 +43,17 @@ namespace Cline\Chaperone\Events;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class ResourceViolationDetected
 {
     /**
      * Create a new resource violation detected event.
      *
-     * @param string    $supervisionId  Unique identifier for the supervision session
-     * @param string    $violationType  Type of resource that was violated (memory, cpu, disk, etc.)
-     * @param int|float $limit          The configured resource limit
-     * @param int|float $actual         The actual resource usage when violation was detected
+     * @param string    $supervisionId Unique identifier for the supervision session
+     * @param string    $violationType Type of resource that was violated (memory, cpu, disk, etc.)
+     * @param float|int $limit         The configured resource limit
+     * @param float|int $actual        The actual resource usage when violation was detected
      */
     public function __construct(
         public string $supervisionId,

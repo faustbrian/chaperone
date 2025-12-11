@@ -13,6 +13,8 @@ use Cline\Chaperone\Contracts\HealthMonitor;
 use Cline\Chaperone\Contracts\ResourceMonitor;
 use Cline\Chaperone\Contracts\SupervisionStrategy;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 use function config;
 
@@ -27,11 +29,6 @@ use function config;
  */
 final class JobSupervisor implements SupervisionStrategy
 {
-    /**
-     * Unique identifier for this supervision session.
-     */
-    private readonly string $supervisionId;
-
     /**
      * Maximum execution time in seconds before timeout.
      */
@@ -65,37 +62,42 @@ final class JobSupervisor implements SupervisionStrategy
     /**
      * Callback invoked when job is detected as stuck.
      *
-     * @var null|callable(string $supervisionId, array $metadata): void
+     * @var null|callable(string, array): void
      */
     private $onStuckCallback;
 
     /**
      * Callback invoked when job exceeds memory limit.
      *
-     * @var null|callable(string $supervisionId, int $currentMb, int $limitMb): void
+     * @var null|callable(string, int, int): void
      */
     private $onMemoryExceededCallback;
 
     /**
      * Callback invoked when job exceeds CPU limit.
      *
-     * @var null|callable(string $supervisionId, float $currentPercent, float $limitPercent): void
+     * @var null|callable(string, float, float): void
      */
     private $onCpuExceededCallback;
 
     /**
      * Callback invoked when job exceeds disk limit.
      *
-     * @var null|callable(string $supervisionId, int $currentMb, int $limitMb): void
+     * @var null|callable(string, int, int): void
      */
     private $onDiskExceededCallback;
 
     /**
+     * Unique identifier for this supervision session.
+     */
+    private readonly string $supervisionId;
+
+    /**
      * Create a new job supervisor instance.
      *
-     * @param ResourceMonitor   $resourceMonitor Service for monitoring resource usage
-     * @param HealthMonitor     $healthMonitor   Service for tracking job health status
-     * @param HeartbeatMonitor  $heartbeatMonitor Service for tracking heartbeats and detecting stuck jobs
+     * @param ResourceMonitor  $resourceMonitor  Service for monitoring resource usage
+     * @param HealthMonitor    $healthMonitor    Service for tracking job health status
+     * @param HeartbeatMonitor $heartbeatMonitor Service for tracking heartbeats and detecting stuck jobs
      */
     public function __construct(
         private readonly ResourceMonitor $resourceMonitor,
@@ -258,8 +260,8 @@ final class JobSupervisor implements SupervisionStrategy
      * The callback receives the supervision ID and exception when a job
      * fails during execution.
      *
-     * @param  callable(string $supervisionId, \Throwable $exception): void $callback Callback to invoke
-     * @return self                                                         Fluent interface for method chaining
+     * @param  callable(string $supervisionId, Throwable $exception): void $callback Callback to invoke
+     * @return self                                                        Fluent interface for method chaining
      */
     public function onFailure(callable $callback): self
     {
@@ -273,7 +275,7 @@ final class JobSupervisor implements SupervisionStrategy
      * configured limit when a job exceeds its memory allocation.
      *
      * @param  callable(string $supervisionId, int $currentMb, int $limitMb): void $callback Callback to invoke
-     * @return self                                                            Fluent interface for method chaining
+     * @return self                                                                Fluent interface for method chaining
      */
     public function onMemoryExceeded(callable $callback): self
     {
@@ -289,7 +291,7 @@ final class JobSupervisor implements SupervisionStrategy
      * and configured limit when a job exceeds its CPU allocation.
      *
      * @param  callable(string $supervisionId, float $currentPercent, float $limitPercent): void $callback Callback to invoke
-     * @return self                                                                          Fluent interface for method chaining
+     * @return self                                                                              Fluent interface for method chaining
      */
     public function onCpuExceeded(callable $callback): self
     {
@@ -305,7 +307,7 @@ final class JobSupervisor implements SupervisionStrategy
      * configured limit when a job exceeds its disk allocation.
      *
      * @param  callable(string $supervisionId, int $currentMb, int $limitMb): void $callback Callback to invoke
-     * @return self                                                            Fluent interface for method chaining
+     * @return self                                                                Fluent interface for method chaining
      */
     public function onDiskExceeded(callable $callback): self
     {
@@ -326,7 +328,7 @@ final class JobSupervisor implements SupervisionStrategy
      *
      * @param string $jobClass Fully-qualified class name of job to supervise
      *
-     * @throws \RuntimeException When supervision cannot be started
+     * @throws RuntimeException When supervision cannot be started
      */
     public function supervise(string $jobClass): void
     {
@@ -385,16 +387,18 @@ final class JobSupervisor implements SupervisionStrategy
             }
         }
 
-        if ($this->diskLimitMb !== null) {
-            $diskCheck = $this->resourceMonitor->checkDisk($this->supervisionId);
+        if ($this->diskLimitMb === null) {
+            return;
+        }
 
-            if (!$diskCheck['within_limit'] && $this->onDiskExceededCallback !== null) {
-                ($this->onDiskExceededCallback)(
-                    $this->supervisionId,
-                    $diskCheck['current_mb'],
-                    $this->diskLimitMb,
-                );
-            }
+        $diskCheck = $this->resourceMonitor->checkDisk($this->supervisionId);
+
+        if (!$diskCheck['within_limit'] && $this->onDiskExceededCallback !== null) {
+            ($this->onDiskExceededCallback)(
+                $this->supervisionId,
+                $diskCheck['current_mb'],
+                $this->diskLimitMb,
+            );
         }
     }
 
@@ -410,20 +414,22 @@ final class JobSupervisor implements SupervisionStrategy
         $stuckJobs = $this->heartbeatMonitor->checkForStuckJobs();
 
         foreach ($stuckJobs as $stuckJob) {
-            if ($stuckJob['supervision_id'] === $this->supervisionId) {
-                if ($this->onStuckCallback !== null) {
-                    ($this->onStuckCallback)(
-                        $this->supervisionId,
-                        $stuckJob['metadata'] ?? [],
-                    );
-                }
+            if ($stuckJob['supervision_id'] !== $this->supervisionId) {
+                continue;
+            }
 
-                // Mark as unhealthy
-                $this->healthMonitor->markUnhealthy(
+            if ($this->onStuckCallback !== null) {
+                ($this->onStuckCallback)(
                     $this->supervisionId,
-                    'Job stuck - missed heartbeats threshold exceeded',
+                    $stuckJob['metadata'] ?? [],
                 );
             }
+
+            // Mark as unhealthy
+            $this->healthMonitor->markUnhealthy(
+                $this->supervisionId,
+                'Job stuck - missed heartbeats threshold exceeded',
+            );
         }
     }
 

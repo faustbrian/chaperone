@@ -1,22 +1,34 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Observers;
 
-use Laravel\Pulse\Facades\Pulse;
 use Cline\Chaperone\Database\Models\CircuitBreaker;
 use Cline\Chaperone\Database\Models\Heartbeat;
 use Cline\Chaperone\Database\Models\SupervisedJob;
 use Illuminate\Support\Facades\Config;
+use Laravel\Pulse\Facades\Pulse;
 
+use function class_exists;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class PulseRecorder
 {
     public function recordSupervisionStarted(SupervisedJob $job): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
 
-        if (! class_exists(Pulse::class)) {
+        if (!class_exists(Pulse::class)) {
             return;
         }
 
@@ -29,11 +41,11 @@ final class PulseRecorder
 
     public function recordSupervisionEnded(SupervisedJob $job): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
 
-        if (! class_exists(Pulse::class)) {
+        if (!class_exists(Pulse::class)) {
             return;
         }
 
@@ -48,11 +60,11 @@ final class PulseRecorder
 
     public function recordHeartbeat(Heartbeat $heartbeat): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
 
-        if (! class_exists(Pulse::class)) {
+        if (!class_exists(Pulse::class)) {
             return;
         }
 
@@ -65,11 +77,11 @@ final class PulseRecorder
 
     public function recordStuckJob(SupervisedJob $job): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
 
-        if (! class_exists(Pulse::class)) {
+        if (!class_exists(Pulse::class)) {
             return;
         }
 
@@ -82,11 +94,11 @@ final class PulseRecorder
 
     public function recordCircuitBreakerOpened(CircuitBreaker $breaker): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
 
-        if (! class_exists(Pulse::class)) {
+        if (!class_exists(Pulse::class)) {
             return;
         }
 

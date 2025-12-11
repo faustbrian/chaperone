@@ -1,5 +1,12 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Console\Commands;
 
 use Cline\Chaperone\Alerting\AlertDispatcher;
@@ -10,7 +17,20 @@ use Cline\Chaperone\Notifications\ResourceViolationNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
+use InvalidArgumentException;
 
+use function array_diff;
+use function array_merge;
+use function array_unique;
+use function implode;
+use function in_array;
+use function now;
+use function sprintf;
+use function uniqid;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class TestAlertsCommand extends Command
 {
     protected $signature = 'chaperone:test-alerts
@@ -24,7 +44,7 @@ final class TestAlertsCommand extends Command
         $type = $this->argument('type');
         $channels = $this->option('channel') ?: ['mail', 'slack'];
 
-        if (! $this->validateChannels($channels)) {
+        if (!$this->validateChannels($channels)) {
             return self::FAILURE;
         }
 
@@ -52,13 +72,15 @@ final class TestAlertsCommand extends Command
         }
 
         foreach ($channels as $channel) {
-            if ($channel === 'mail' && ! Config::get('chaperone.alerting.email.enabled')) {
+            if ($channel === 'mail' && !Config::get('chaperone.alerting.email.enabled')) {
                 $this->warn('Email alerting is disabled in config');
             }
 
-            if ($channel === 'slack' && ! Config::get('chaperone.alerting.slack.enabled')) {
-                $this->warn('Slack alerting is disabled in config');
+            if ($channel !== 'slack' || Config::get('chaperone.alerting.slack.enabled')) {
+                continue;
             }
+
+            $this->warn('Slack alerting is disabled in config');
         }
 
         return true;
@@ -93,7 +115,7 @@ final class TestAlertsCommand extends Command
                 jobClass: 'App\\Jobs\\TestJob',
                 value: 512.5,
             ),
-            default => throw new \InvalidArgumentException('Unknown alert type: ' . $type),
+            default => throw new InvalidArgumentException('Unknown alert type: '.$type),
         };
 
         $recipients = $this->getRecipients($channels);

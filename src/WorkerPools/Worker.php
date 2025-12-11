@@ -1,18 +1,35 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\WorkerPools;
 
+use DateTimeInterface;
 use Illuminate\Support\Facades\Date;
 
+use const SIGTERM;
+
+use function getmypid;
+use function memory_get_usage;
+use function posix_kill;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class Worker
 {
     public int $pid = 0;
 
     public string $status = 'running';
 
-    public \DateTimeInterface $startedAt;
+    public DateTimeInterface $startedAt;
 
-    public ?\DateTimeInterface $lastHealthCheck = null;
+    public ?DateTimeInterface $lastHealthCheck = null;
 
     private $healthCheckCallback;
 
@@ -39,13 +56,14 @@ final class Worker
         if ($this->status === 'stopped' || $this->status === 'crashed') {
             return false;
         }
+
         // Check if process is still running
         return $this->pid && posix_kill($this->pid, 0);
     }
 
     public function memoryUsage(): int
     {
-        return (int) (memory_get_usage(true) / 1024 / 1024); // MB
+        return (int) (memory_get_usage(true) / 1_024 / 1_024); // MB
     }
 
     public function restart(): void
@@ -58,9 +76,11 @@ final class Worker
 
     public function kill(): void
     {
-        if ($this->pid && posix_kill($this->pid, SIGTERM)) {
-            $this->status = 'stopped';
+        if (!$this->pid || !posix_kill($this->pid, SIGTERM)) {
+            return;
         }
+
+        $this->status = 'stopped';
     }
 
     public function healthCheck(): bool
@@ -73,11 +93,12 @@ final class Worker
         }
 
         // Default health check
-        if (! $this->isResponsive()) {
+        if (!$this->isResponsive()) {
             $this->status = 'crashed';
 
             return false;
         }
+
         return $this->memoryUsage() <= 512;
     }
 }

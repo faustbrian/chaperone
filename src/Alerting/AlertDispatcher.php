@@ -1,5 +1,12 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Alerting;
 
 use Cline\Chaperone\Events\CircuitBreakerOpened;
@@ -10,11 +17,20 @@ use Cline\Chaperone\Notifications\CircuitBreakerOpenedNotification;
 use Cline\Chaperone\Notifications\JobStuckNotification;
 use Cline\Chaperone\Notifications\JobTimeoutNotification;
 use Cline\Chaperone\Notifications\ResourceViolationNotification;
+use DateTimeInterface;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
 
+use function array_filter;
+use function is_array;
+use function sprintf;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
+ */
 final readonly class AlertDispatcher
 {
     public function __construct(Dispatcher $events)
@@ -22,71 +38,13 @@ final readonly class AlertDispatcher
         $this->registerListeners($events);
     }
 
-    private function registerListeners(Dispatcher $events): void
-    {
-        $events->listen(
-            JobStuck::class,
-            function (JobStuck $event): void {
-                $job = $this->getJob($event->jobId);
-                if ($job !== null) {
-                    $this->sendJobStuckAlert(
-                        $event->supervisionId,
-                        $job->job_class,
-                        $event->stuckDuration,
-                        $event->lastHeartbeat,
-                    );
-                }
-            },
-        );
-
-        $events->listen(
-            JobTimeout::class,
-            function (JobTimeout $event): void {
-                $job = $this->getJob($event->jobId);
-                if ($job !== null) {
-                    $this->sendJobTimeoutAlert(
-                        $event->supervisionId,
-                        $job->job_class,
-                        $event->timeoutSeconds,
-                        $event->actualDuration,
-                    );
-                }
-            },
-        );
-
-        $events->listen(
-            CircuitBreakerOpened::class,
-            fn (CircuitBreakerOpened $event) => $this->sendCircuitBreakerOpenedAlert(
-                $event->service,
-                $event->failureCount,
-                $event->openedAt,
-            ),
-        );
-
-        $events->listen(
-            ResourceViolationDetected::class,
-            function (ResourceViolationDetected $event): void {
-                $job = $this->getJob($event->jobId);
-                if ($job !== null) {
-                    $this->sendResourceViolationAlert(
-                        $event->supervisionId,
-                        $job->job_class,
-                        $event->violationType->value,
-                        $event->limit,
-                        $event->actual,
-                    );
-                }
-            },
-        );
-    }
-
     public function sendJobStuckAlert(
         string $supervisionId,
         string $jobClass,
         int $stuckDuration,
-        ?\DateTimeInterface $lastHeartbeat,
+        ?DateTimeInterface $lastHeartbeat,
     ): void {
-        if (! $this->shouldAlert('job_stuck', $supervisionId)) {
+        if (!$this->shouldAlert('job_stuck', $supervisionId)) {
             return;
         }
 
@@ -107,7 +65,7 @@ final readonly class AlertDispatcher
         int $timeoutSeconds,
         int $actualDuration,
     ): void {
-        if (! $this->shouldAlert('job_timeout', $supervisionId)) {
+        if (!$this->shouldAlert('job_timeout', $supervisionId)) {
             return;
         }
 
@@ -125,9 +83,9 @@ final readonly class AlertDispatcher
     public function sendCircuitBreakerOpenedAlert(
         string $service,
         int $failureCount,
-        \DateTimeInterface $openedAt,
+        DateTimeInterface $openedAt,
     ): void {
-        if (! $this->shouldAlert('circuit_breaker', $service)) {
+        if (!$this->shouldAlert('circuit_breaker', $service)) {
             return;
         }
 
@@ -148,7 +106,7 @@ final readonly class AlertDispatcher
         float $limit,
         float $actual,
     ): void {
-        if (! $this->shouldAlert('resource_violation', sprintf('%s:%s', $supervisionId, $violationType))) {
+        if (!$this->shouldAlert('resource_violation', sprintf('%s:%s', $supervisionId, $violationType))) {
             return;
         }
 
@@ -164,9 +122,76 @@ final readonly class AlertDispatcher
         $this->recordAlert('resource_violation', sprintf('%s:%s', $supervisionId, $violationType));
     }
 
+    private function registerListeners(Dispatcher $events): void
+    {
+        $events->listen(
+            JobStuck::class,
+            function (JobStuck $event): void {
+                $job = $this->getJob($event->jobId);
+
+                if ($job === null) {
+                    return;
+                }
+
+                $this->sendJobStuckAlert(
+                    $event->supervisionId,
+                    $job->job_class,
+                    $event->stuckDuration,
+                    $event->lastHeartbeat,
+                );
+            },
+        );
+
+        $events->listen(
+            JobTimeout::class,
+            function (JobTimeout $event): void {
+                $job = $this->getJob($event->jobId);
+
+                if ($job === null) {
+                    return;
+                }
+
+                $this->sendJobTimeoutAlert(
+                    $event->supervisionId,
+                    $job->job_class,
+                    $event->timeoutSeconds,
+                    $event->actualDuration,
+                );
+            },
+        );
+
+        $events->listen(
+            CircuitBreakerOpened::class,
+            fn (CircuitBreakerOpened $event) => $this->sendCircuitBreakerOpenedAlert(
+                $event->service,
+                $event->failureCount,
+                $event->openedAt,
+            ),
+        );
+
+        $events->listen(
+            ResourceViolationDetected::class,
+            function (ResourceViolationDetected $event): void {
+                $job = $this->getJob($event->jobId);
+
+                if ($job === null) {
+                    return;
+                }
+
+                $this->sendResourceViolationAlert(
+                    $event->supervisionId,
+                    $job->job_class,
+                    $event->violationType->value,
+                    $event->limit,
+                    $event->actual,
+                );
+            },
+        );
+    }
+
     private function dispatch(mixed $notification): void
     {
-        if (! Config::get('chaperone.alerting.enabled', false)) {
+        if (!Config::get('chaperone.alerting.enabled', false)) {
             return;
         }
 
@@ -183,14 +208,14 @@ final readonly class AlertDispatcher
 
     private function shouldAlert(string $type, string $key): bool
     {
-        if (! Config::get('chaperone.alerting.enabled', false)) {
+        if (!Config::get('chaperone.alerting.enabled', false)) {
             return false;
         }
 
         // Rate limiting: max 1 alert per type+key per 5 minutes
         $cacheKey = sprintf('chaperone:alert_sent:%s:%s', $type, $key);
 
-        return ! Cache::has($cacheKey);
+        return !Cache::has($cacheKey);
     }
 
     private function recordAlert(string $type, string $key): void
@@ -205,7 +230,7 @@ final readonly class AlertDispatcher
     {
         $recipients = Config::get('chaperone.alerting.recipients', []);
 
-        if (! is_array($recipients)) {
+        if (!is_array($recipients)) {
             return [];
         }
 

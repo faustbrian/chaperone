@@ -1,10 +1,24 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Console\Commands;
 
 use Cline\Chaperone\Queue\QueueFilter;
 use Illuminate\Console\Command;
 
+use const JSON_PRETTY_PRINT;
+
+use function json_encode;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class ShowSupervisedQueuesCommand extends Command
 {
     protected $signature = 'chaperone:queues
@@ -44,16 +58,18 @@ final class ShowSupervisedQueuesCommand extends Command
             $this->line('<fg=yellow>Mode:</> Allowlist');
             $this->newLine();
             $this->line('<fg=green>Supervised Queues:</>');
+
             foreach ($supervised as $queue) {
-                $this->line('  • ' . $queue);
+                $this->line('  • '.$queue);
             }
         }
 
         if ($excluded !== []) {
             $this->newLine();
             $this->line('<fg=red>Excluded Queues:</>');
+
             foreach ($excluded as $queue) {
-                $this->line('  • ' . $queue);
+                $this->line('  • '.$queue);
             }
         }
 

@@ -1,12 +1,23 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Notifications;
 
+use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class CircuitBreakerOpenedNotification extends Notification
 {
     use Queueable;
@@ -14,7 +25,7 @@ final class CircuitBreakerOpenedNotification extends Notification
     public function __construct(
         private readonly string $service,
         private readonly int $failureCount,
-        private readonly \DateTimeInterface $openedAt,
+        private readonly DateTimeInterface $openedAt,
     ) {}
 
     public function via(mixed $notifiable): array
@@ -26,11 +37,11 @@ final class CircuitBreakerOpenedNotification extends Notification
     {
         return new MailMessage()
             ->error()
-            ->subject('Circuit Breaker Opened: ' . $this->service)
-            ->line("A circuit breaker has been opened due to repeated failures.")
-            ->line('Service: ' . $this->service)
-            ->line('Failure Count: ' . $this->failureCount)
-            ->line('Opened At: ' . $this->openedAt->format('Y-m-d H:i:s'))
+            ->subject('Circuit Breaker Opened: '.$this->service)
+            ->line('A circuit breaker has been opened due to repeated failures.')
+            ->line('Service: '.$this->service)
+            ->line('Failure Count: '.$this->failureCount)
+            ->line('Opened At: '.$this->openedAt->format('Y-m-d H:i:s'))
             ->line('The service will be temporarily unavailable until recovery.');
     }
 
@@ -38,7 +49,7 @@ final class CircuitBreakerOpenedNotification extends Notification
     {
         return new SlackMessage()
             ->error()
-            ->content("🚨 Circuit Breaker Opened")
+            ->content('🚨 Circuit Breaker Opened')
             ->attachment(function ($attachment): void {
                 $attachment
                     ->title($this->service)

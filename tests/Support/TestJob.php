@@ -20,6 +20,7 @@ use Illuminate\Queue\SerializesModels;
  *
  * Simple job implementation used for testing dead letter queue
  * and supervision functionality without executing actual business logic.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class TestJob implements ShouldQueue
 {

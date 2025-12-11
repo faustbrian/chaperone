@@ -9,18 +9,18 @@
 
 namespace Cline\Chaperone;
 
-use Cline\Chaperone\Console\Commands\MonitorCommand;
-use Cline\Chaperone\Console\Commands\HealthCommand;
-use Cline\Chaperone\Console\Commands\CircuitBreakerCommand;
-use Cline\Chaperone\Console\Commands\StuckJobsCommand;
-use Cline\Chaperone\Console\Commands\PruneDeadLetterQueueCommand;
-use Cline\Chaperone\Console\Commands\WorkersCommand;
-use Cline\Chaperone\Console\Commands\PrepareDeploymentCommand;
-use Cline\Chaperone\Console\Commands\ShowSupervisedQueuesCommand;
-use Cline\Chaperone\Console\Commands\TestAlertsCommand;
 use Cline\Chaperone\Alerting\AlertDispatcher;
 use Cline\Chaperone\CircuitBreakers\CircuitBreakerManager;
 use Cline\Chaperone\CircuitBreakers\CircuitBreakerRegistry;
+use Cline\Chaperone\Console\Commands\CircuitBreakerCommand;
+use Cline\Chaperone\Console\Commands\HealthCommand;
+use Cline\Chaperone\Console\Commands\MonitorCommand;
+use Cline\Chaperone\Console\Commands\PrepareDeploymentCommand;
+use Cline\Chaperone\Console\Commands\PruneDeadLetterQueueCommand;
+use Cline\Chaperone\Console\Commands\ShowSupervisedQueuesCommand;
+use Cline\Chaperone\Console\Commands\StuckJobsCommand;
+use Cline\Chaperone\Console\Commands\TestAlertsCommand;
+use Cline\Chaperone\Console\Commands\WorkersCommand;
 use Cline\Chaperone\Contracts\CircuitBreaker;
 use Cline\Chaperone\Contracts\HealthMonitor;
 use Cline\Chaperone\Contracts\ResourceMonitor;
@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
+use function config;
 use function config_path;
 use function database_path;
 
@@ -116,15 +117,17 @@ final class ChaperoneServiceProvider extends ServiceProvider
      */
     private function registerPublishing(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->publishes([
-                __DIR__.'/../config/chaperone.php' => config_path('chaperone.php'),
-            ], 'chaperone-config');
-
-            $this->publishes([
-                __DIR__.'/../database/migrations/create_chaperone_tables.php' => database_path('migrations/'.Date::now()->format('Y_m_d_His').'_create_chaperone_tables.php'),
-            ], 'chaperone-migrations');
+        if (!$this->app->runningInConsole()) {
+            return;
         }
+
+        $this->publishes([
+            __DIR__.'/../config/chaperone.php' => config_path('chaperone.php'),
+        ], 'chaperone-config');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/create_chaperone_tables.php' => database_path('migrations/'.Date::now()->format('Y_m_d_His').'_create_chaperone_tables.php'),
+        ], 'chaperone-migrations');
     }
 
     /**
@@ -147,19 +150,21 @@ final class ChaperoneServiceProvider extends ServiceProvider
      */
     private function registerCommands(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                MonitorCommand::class,
-                HealthCommand::class,
-                CircuitBreakerCommand::class,
-                StuckJobsCommand::class,
-                PruneDeadLetterQueueCommand::class,
-                WorkersCommand::class,
-                PrepareDeploymentCommand::class,
-                ShowSupervisedQueuesCommand::class,
-                TestAlertsCommand::class,
-            ]);
+        if (!$this->app->runningInConsole()) {
+            return;
         }
+
+        $this->commands([
+            MonitorCommand::class,
+            HealthCommand::class,
+            CircuitBreakerCommand::class,
+            StuckJobsCommand::class,
+            PruneDeadLetterQueueCommand::class,
+            WorkersCommand::class,
+            PrepareDeploymentCommand::class,
+            ShowSupervisedQueuesCommand::class,
+            TestAlertsCommand::class,
+        ]);
     }
 
     /**

@@ -48,13 +48,13 @@ final class ResourceLimitEnforcer implements ResourceMonitor
      * limit. Records violations and fires ResourceViolationDetected event when
      * limit is exceeded.
      *
-     * @param  string                                                                      $jobId Job or supervision identifier
+     * @param  string                                                                         $jobId Job or supervision identifier
      * @return array{within_limit: bool, current_mb: int, limit_mb: null|int, percent: float} Memory check results
      */
     public function checkMemory(string $jobId): array
     {
         $currentBytes = memory_get_usage(true);
-        $currentMb = (int) ($currentBytes / 1024 / 1024);
+        $currentMb = (int) ($currentBytes / 1_024 / 1_024);
 
         /** @var null|int $limitMb */
         $limitMb = config('chaperone.supervision.memory_limit_mb');
@@ -73,12 +73,14 @@ final class ResourceLimitEnforcer implements ResourceMonitor
                     'percent' => $percent,
                 ]);
 
-                Event::dispatch(new ResourceViolationDetected(
-                    $jobId,
-                    'memory',
-                    $limitMb,
-                    $currentMb,
-                ));
+                Event::dispatch(
+                    new ResourceViolationDetected(
+                        $jobId,
+                        'memory',
+                        $limitMb,
+                        $currentMb,
+                    )
+                );
             }
         }
 
@@ -101,7 +103,7 @@ final class ResourceLimitEnforcer implements ResourceMonitor
      * Records violations and fires ResourceViolationDetected event when
      * limit is exceeded. Uses system load average for CPU measurement.
      *
-     * @param  string                                                                              $jobId Job or supervision identifier
+     * @param  string                                                                                        $jobId Job or supervision identifier
      * @return array{within_limit: bool, current_percent: float, limit_percent: null|float, load_avg: float} CPU check results
      */
     public function checkCpu(string $jobId): array
@@ -124,12 +126,14 @@ final class ResourceLimitEnforcer implements ResourceMonitor
                     'load_avg' => $loadAvg[0] ?? 0.0,
                 ]);
 
-                Event::dispatch(new ResourceViolationDetected(
-                    $jobId,
-                    'cpu',
-                    $limitPercent,
-                    $currentPercent,
-                ));
+                Event::dispatch(
+                    new ResourceViolationDetected(
+                        $jobId,
+                        'cpu',
+                        $limitPercent,
+                        $currentPercent,
+                    )
+                );
             }
         }
 
@@ -152,7 +156,7 @@ final class ResourceLimitEnforcer implements ResourceMonitor
      * Records violations and fires ResourceViolationDetected event when
      * limit is exceeded.
      *
-     * @param  string                                                                      $jobId Job or supervision identifier
+     * @param  string                                                                       $jobId Job or supervision identifier
      * @return array{within_limit: bool, current_mb: int, limit_mb: null|int, free_mb: int} Disk check results
      */
     public function checkDisk(string $jobId): array
@@ -161,7 +165,7 @@ final class ResourceLimitEnforcer implements ResourceMonitor
         $path = config('chaperone.supervision.disk_path', '/');
 
         $freeBytes = disk_free_space($path);
-        $freeMb = $freeBytes !== false ? (int) ($freeBytes / 1024 / 1024) : 0;
+        $freeMb = $freeBytes !== false ? (int) ($freeBytes / 1_024 / 1_024) : 0;
 
         /** @var null|int $limitMb */
         $limitMb = config('chaperone.supervision.disk_limit_mb');
@@ -182,12 +186,14 @@ final class ResourceLimitEnforcer implements ResourceMonitor
                     'free_mb' => $freeMb,
                 ]);
 
-                Event::dispatch(new ResourceViolationDetected(
-                    $jobId,
-                    'disk',
-                    $limitMb,
-                    $currentMb,
-                ));
+                Event::dispatch(
+                    new ResourceViolationDetected(
+                        $jobId,
+                        'disk',
+                        $limitMb,
+                        $currentMb,
+                    )
+                );
             }
         }
 
@@ -229,7 +235,7 @@ final class ResourceLimitEnforcer implements ResourceMonitor
      * Returns a comprehensive snapshot of current resource consumption including
      * memory, CPU, and disk usage with their respective limits and status.
      *
-     * @param  string                                                     $jobId Job or supervision identifier
+     * @param  string                                                                 $jobId Job or supervision identifier
      * @return array{memory: array, cpu: array, disk: array, all_within_limits: bool} Current usage metrics
      */
     public function getCurrentUsage(string $jobId): array
@@ -254,15 +260,13 @@ final class ResourceLimitEnforcer implements ResourceMonitor
      * Retrieves all recorded resource violations for the specified job,
      * useful for debugging and audit trails.
      *
-     * @param  string                                                                       $jobId Job or supervision identifier
+     * @param  string                                                                              $jobId Job or supervision identifier
      * @return array<array{resource_type: string, data: array, timestamp: string, job_id: string}> Violation records
      */
     public function getViolations(string $jobId): array
     {
         /** @var array<array{resource_type: string, data: array, timestamp: string, job_id: string}> $violations */
-        $violations = Cache::get(self::VIOLATION_PREFIX.$jobId, []);
-
-        return $violations;
+        return Cache::get(self::VIOLATION_PREFIX.$jobId, []);
     }
 
     /**
@@ -302,7 +306,7 @@ final class ResourceLimitEnforcer implements ResourceMonitor
         ];
 
         /** @var int $ttl */
-        $ttl = config('chaperone.supervision.violation_ttl_seconds', 86400); // 24 hours default
+        $ttl = config('chaperone.supervision.violation_ttl_seconds', 86_400); // 24 hours default
 
         Cache::put(self::VIOLATION_PREFIX.$jobId, $violations, $ttl);
     }
@@ -328,7 +332,7 @@ final class ResourceLimitEnforcer implements ResourceMonitor
         ];
 
         /** @var int $ttl */
-        $ttl = config('chaperone.supervision.usage_ttl_seconds', 3600); // 1 hour default
+        $ttl = config('chaperone.supervision.usage_ttl_seconds', 3_600); // 1 hour default
 
         Cache::put(self::USAGE_PREFIX.$jobId, $usage, $ttl);
     }

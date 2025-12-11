@@ -18,6 +18,7 @@ use Cline\Chaperone\Supervisors\HeartbeatMonitor;
 use Cline\Chaperone\Supervisors\JobSupervisor;
 use Cline\Chaperone\WorkerPools\WorkerPoolRegistry;
 use Cline\Chaperone\WorkerPools\WorkerPoolSupervisor;
+use RuntimeException;
 
 /**
  * Main orchestrator for Chaperone job supervision and monitoring.
@@ -28,6 +29,7 @@ use Cline\Chaperone\WorkerPools\WorkerPoolSupervisor;
  * strategies, circuit breakers, health monitors, and resource enforcement.
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class Chaperone
 {
@@ -161,7 +163,7 @@ final readonly class Chaperone
      * }
      * ```
      *
-     * @param  string                                                                                                       $supervisionId Supervision session identifier
+     * @param  string                                                                                                                             $supervisionId Supervision session identifier
      * @return array{status: string, reason: null|string, updated_at: null|string, job_id: string, check_count: int, first_unhealthy_at?: string} Health status data
      */
     public function getHealth(string $supervisionId): array
@@ -209,13 +211,12 @@ final readonly class Chaperone
      *     ->serve();
      * ```
      *
-     * @return mixed DashboardConfig instance (to be implemented)
-     *
-     * @throws \RuntimeException Always throws - method not yet implemented
+     * @throws RuntimeException Always throws - method not yet implemented
+     * @return mixed            DashboardConfig instance (to be implemented)
      */
     public function dashboard(): mixed
     {
-        throw new \RuntimeException('Dashboard configuration not yet implemented');
+        throw new RuntimeException('Dashboard configuration not yet implemented');
     }
 
     /**

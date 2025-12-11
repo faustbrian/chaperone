@@ -41,14 +41,15 @@ use DateTimeImmutable;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class CircuitBreakerHalfOpened
 {
     /**
      * Create a new circuit breaker half-opened event.
      *
-     * @param string            $service       Identifier for the protected service
-     * @param DateTimeImmutable $halfOpenedAt  Timestamp when the circuit breaker entered half-open state
+     * @param string            $service      Identifier for the protected service
+     * @param DateTimeImmutable $halfOpenedAt Timestamp when the circuit breaker entered half-open state
      */
     public function __construct(
         public string $service,

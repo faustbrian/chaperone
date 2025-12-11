@@ -9,7 +9,6 @@
 
 namespace Tests\Unit\DeadLetterQueue;
 
-use Illuminate\Support\Facades\Date;
 use Cline\Chaperone\Database\Models\DeadLetterJob;
 use Cline\Chaperone\Database\Models\SupervisedJob;
 use Cline\Chaperone\DeadLetterQueue\DeadLetterQueueManager;
@@ -19,7 +18,9 @@ use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Small;
@@ -29,15 +30,19 @@ use RuntimeException;
 use Tests\Support\TestJob;
 use Tests\TestCase;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ * @internal
+ */
 #[CoversClass(DeadLetterQueueManager::class)]
-#[Small]
+#[Small()]
 final class DeadLetterQueueManagerTest extends TestCase
 {
     use RefreshDatabase;
 
     private DeadLetterQueueManager $manager;
 
-    #[\Override]
+    #[Override()]
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,10 +50,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->manager = new DeadLetterQueueManager();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Creates dead letter queue entry with complete job and exception details')]
     #[Group('happy-path')]
-    public function createsDeadLetterQueueEntryWithCompleteDetails(): void
+    public function creates_dead_letter_queue_entry_with_complete_details(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([
@@ -73,17 +78,17 @@ final class DeadLetterQueueManagerTest extends TestCase
         ]);
 
         $deadLetterJob = DeadLetterJob::query()->first();
-        $this->assertNotNull($deadLetterJob);
+        $this->assertInstanceOf(DeadLetterJob::class, $deadLetterJob);
         $this->assertEquals($supervisedJob->id, $deadLetterJob->supervised_job_id);
         $this->assertEquals(['user_id' => 1, 'action' => 'process_payment'], $deadLetterJob->payload);
         $this->assertNotEmpty($deadLetterJob->trace);
         $this->assertIsString($deadLetterJob->trace);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Dispatches JobMovedToDeadLetterQueue event when job is moved to DLQ')]
     #[Group('happy-path')]
-    public function dispatchesEventWhenJobMovedToDeadLetterQueue(): void
+    public function dispatches_event_when_job_moved_to_dead_letter_queue(): void
     {
         // Arrange
         Event::fake();
@@ -102,16 +107,16 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->manager->moveToDeadLetterQueue($supervisedJob, $exception);
 
         // Assert
-        Event::assertDispatched(JobMovedToDeadLetterQueue::class, fn($event): bool => $event->supervisionId === (string) $supervisedJob->id
+        Event::assertDispatched(JobMovedToDeadLetterQueue::class, fn ($event): bool => $event->supervisionId === (string) $supervisedJob->id
             && $event->jobClass === TestJob::class
             && $event->exception === $exception
             && $event->failedAt instanceof Carbon);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Preserves job payload in dead letter queue entry for retry')]
     #[Group('happy-path')]
-    public function preservesJobPayloadForRetry(): void
+    public function preserves_job_payload_for_retry(): void
     {
         // Arrange
         $complexPayload = [
@@ -141,10 +146,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertEquals($complexPayload, $deadLetterJob->payload);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Does not create DLQ entry when dead letter queue is disabled')]
     #[Group('sad-path')]
-    public function doesNotCreateEntryWhenDisabled(): void
+    public function does_not_create_entry_when_disabled(): void
     {
         // Arrange
         Config::set('chaperone.dead_letter_queue.enabled', false);
@@ -165,10 +170,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertDatabaseCount('dead_letter_queue', 0);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Retrieves single dead letter entry by ID')]
     #[Group('happy-path')]
-    public function retrievesSingleDeadLetterEntryById(): void
+    public function retrieves_single_dead_letter_entry_by_id(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([
@@ -201,10 +206,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertEquals(['test' => 'data'], $result['payload']);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Returns null when dead letter entry does not exist')]
     #[Group('sad-path')]
-    public function returnsNullWhenEntryDoesNotExist(): void
+    public function returns_null_when_entry_does_not_exist(): void
     {
         // Arrange
         $nonExistentId = '999';
@@ -216,10 +221,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertNull($result);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Retrieves all dead letter entries ordered by most recent first')]
     #[Group('happy-path')]
-    public function retrievesAllEntriesOrderedByMostRecent(): void
+    public function retrieves_all_entries_ordered_by_most_recent(): void
     {
         // Arrange
         $supervisedJob1 = SupervisedJob::query()->create([
@@ -263,15 +268,15 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertEquals('First failure', $results->last()->message);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Returns total count of dead letter queue entries')]
     #[Group('happy-path')]
-    public function returnsTotalCountOfEntries(): void
+    public function returns_total_count_of_entries(): void
     {
         // Arrange
         for ($i = 0; $i < 5; ++$i) {
             $supervisedJob = SupervisedJob::query()->create([
-                'job_id' => 'job-' . $i,
+                'job_id' => 'job-'.$i,
                 'job_class' => TestJob::class,
                 'started_at' => Date::now(),
                 'status' => SupervisedJobStatus::Failed,
@@ -281,7 +286,7 @@ final class DeadLetterQueueManagerTest extends TestCase
                 'supervised_job_id' => $supervisedJob->id,
                 'job_class' => TestJob::class,
                 'exception' => Exception::class,
-                'message' => 'Message ' . $i,
+                'message' => 'Message '.$i,
                 'trace' => 'trace',
                 'failed_at' => Date::now(),
             ]);
@@ -294,10 +299,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertSame(5, $count);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Retries dead letter job by re-dispatching with stored payload')]
     #[Group('happy-path')]
-    public function retriesDeadLetterJobByRedispatching(): void
+    public function retries_dead_letter_job_by_redispatching(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([
@@ -322,14 +327,14 @@ final class DeadLetterQueueManagerTest extends TestCase
 
         // Assert
         $deadLetterJob->refresh();
-        $this->assertNotNull($deadLetterJob->retried_at);
+        $this->assertInstanceOf(Carbon::class, $deadLetterJob->retried_at);
         $this->assertInstanceOf(Carbon::class, $deadLetterJob->retried_at);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Throws exception when retrying non-existent dead letter entry')]
     #[Group('sad-path')]
-    public function throwsExceptionWhenRetryingNonExistentEntry(): void
+    public function throws_exception_when_retrying_non_existent_entry(): void
     {
         // Arrange
         $nonExistentId = '999';
@@ -342,10 +347,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->manager->retry($nonExistentId);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Throws exception when retrying job with non-existent class')]
     #[Group('sad-path')]
-    public function throwsExceptionWhenJobClassDoesNotExist(): void
+    public function throws_exception_when_job_class_does_not_exist(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([
@@ -372,10 +377,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->manager->retry((string) $deadLetterJob->id);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Prunes entries older than specified retention period')]
     #[Group('happy-path')]
-    public function prunesEntriesOlderThanRetentionPeriod(): void
+    public function prunes_entries_older_than_retention_period(): void
     {
         // Arrange
         Date::setTestNow(Date::parse('2024-02-15 12:00:00'));
@@ -430,10 +435,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         Date::setTestNow();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Uses configured retention period when no days parameter provided')]
     #[Group('happy-path')]
-    public function usesConfiguredRetentionPeriodWhenNoDaysProvided(): void
+    public function uses_configured_retention_period_when_no_days_provided(): void
     {
         // Arrange
         Config::set('chaperone.dead_letter_queue.retention_period', 15);
@@ -481,10 +486,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         Date::setTestNow();
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Does not prune any entries when retention period is zero')]
     #[Group('edge-case')]
-    public function doesNotPruneWhenRetentionPeriodIsZero(): void
+    public function does_not_prune_when_retention_period_is_zero(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([
@@ -511,10 +516,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertDatabaseCount('dead_letter_queue', 1);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Returns zero count when no entries exist')]
     #[Group('edge-case')]
-    public function returnsZeroCountWhenNoEntriesExist(): void
+    public function returns_zero_count_when_no_entries_exist(): void
     {
         // Arrange
         // No entries created
@@ -526,10 +531,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertSame(0, $count);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Returns empty collection when no entries exist')]
     #[Group('edge-case')]
-    public function returnsEmptyCollectionWhenNoEntriesExist(): void
+    public function returns_empty_collection_when_no_entries_exist(): void
     {
         // Arrange
         // No entries created
@@ -542,10 +547,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertTrue($results->isEmpty());
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Handles null payload gracefully')]
     #[Group('edge-case')]
-    public function handlesNullPayloadGracefully(): void
+    public function handles_null_payload_gracefully(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([
@@ -566,10 +571,10 @@ final class DeadLetterQueueManagerTest extends TestCase
         $this->assertNull($deadLetterJob->payload);
     }
 
-    #[Test]
+    #[Test()]
     #[TestDox('Loads supervised job relationship in all() method')]
     #[Group('happy-path')]
-    public function loadsSupervisedJobRelationshipInAllMethod(): void
+    public function loads_supervised_job_relationship_in_all_method(): void
     {
         // Arrange
         $supervisedJob = SupervisedJob::query()->create([

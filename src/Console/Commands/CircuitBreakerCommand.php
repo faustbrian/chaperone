@@ -9,11 +9,11 @@
 
 namespace Cline\Chaperone\Console\Commands;
 
-use Illuminate\Support\Facades\Date;
 use Cline\Chaperone\Database\Models\CircuitBreaker;
 use Cline\Chaperone\Enums\CircuitBreakerState;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Date;
 
 use function sprintf;
 

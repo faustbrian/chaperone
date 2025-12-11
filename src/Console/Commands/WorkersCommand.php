@@ -1,10 +1,26 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Console\Commands;
 
 use Cline\Chaperone\WorkerPools\WorkerPoolRegistry;
 use Illuminate\Console\Command;
 
+use const JSON_PRETTY_PRINT;
+
+use function collect;
+use function json_encode;
+use function sprintf;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class WorkersCommand extends Command
 {
     protected $signature = 'chaperone:workers
@@ -35,7 +51,7 @@ final class WorkersCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->info('Worker Pool: ' . $status['name']);
+        $this->info('Worker Pool: '.$status['name']);
         $this->table(
             ['ID', 'PID', 'Status', 'Started At', 'Memory (MB)'],
             collect($status['workers'])->map(fn ($worker): array => [

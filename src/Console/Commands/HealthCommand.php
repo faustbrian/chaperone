@@ -13,6 +13,9 @@ use Cline\Chaperone\Database\Models\SupervisedJob;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 
+use function collect;
+use function is_array;
+use function json_encode;
 use function sprintf;
 
 /**
@@ -158,7 +161,7 @@ final class HealthCommand extends Command
                 ['Key', 'Value'],
                 collect($latestHealthCheck->metadata)->map(fn (mixed $value, string $key): array => [
                     $key,
-                    \is_array($value) ? json_encode($value) : (string) $value,
+                    is_array($value) ? json_encode($value) : (string) $value,
                 ])->all(),
             );
         }

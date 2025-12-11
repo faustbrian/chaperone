@@ -25,9 +25,8 @@ namespace Cline\Chaperone\Enums;
  * $table->ulid('id')->primary();  // Instead of $table->id()
  * ```
  *
- * @see https://laravel.com/docs/migrations#column-method-id
- *
  * @author Brian Faust <brian@cline.sh>
+ * @see https://laravel.com/docs/migrations#column-method-id
  */
 enum PrimaryKeyType: string
 {

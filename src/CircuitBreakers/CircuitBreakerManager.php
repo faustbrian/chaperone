@@ -61,9 +61,9 @@ final class CircuitBreakerManager implements CircuitBreakerContract
     /**
      * Create a new circuit breaker manager instance.
      *
-     * @param string $service Service name for this circuit breaker
+     * @param string $service          Service name for this circuit breaker
      * @param int    $failureThreshold Number of failures before opening circuit
-     * @param int    $timeout Seconds before transitioning to half-open
+     * @param int    $timeout          Seconds before transitioning to half-open
      * @param int    $halfOpenAttempts Successful attempts needed to close circuit
      */
     public function __construct(
@@ -89,7 +89,7 @@ final class CircuitBreakerManager implements CircuitBreakerContract
      * @param callable $callback Operation to protect with circuit breaker
      *
      * @throws RuntimeException When circuit is open
-     * @throws Throwable When operation fails
+     * @throws Throwable        When operation fails
      *
      * @return mixed Result of the callback execution
      */
@@ -168,25 +168,6 @@ final class CircuitBreakerManager implements CircuitBreakerContract
     }
 
     /**
-     * Open the circuit without acquiring a lock.
-     *
-     * Internal method for use within existing locks to prevent deadlock.
-     */
-    private function doOpen(): void
-    {
-        $this->model->update([
-            'state' => CircuitBreakerState::Open,
-            'opened_at' => Date::now(),
-        ]);
-
-        Event::dispatch(new CircuitBreakerOpened(
-            $this->service,
-            $this->model->failure_count,
-            Date::now()->toDateTimeImmutable(),
-        ));
-    }
-
-    /**
      * Manually close the circuit.
      *
      * Forces the circuit into Closed state, allowing requests through.
@@ -197,26 +178,6 @@ final class CircuitBreakerManager implements CircuitBreakerContract
         $this->withLock(function (): void {
             $this->doClose();
         });
-    }
-
-    /**
-     * Close the circuit without acquiring a lock.
-     *
-     * Internal method for use within existing locks to prevent deadlock.
-     */
-    private function doClose(): void
-    {
-        $this->model->update([
-            'state' => CircuitBreakerState::Closed,
-            'failure_count' => 0,
-            'success_count' => 0,
-            'opened_at' => null,
-        ]);
-
-        Event::dispatch(new CircuitBreakerClosed(
-            $this->service,
-            Date::now()->toDateTimeImmutable(),
-        ));
     }
 
     /**
@@ -268,17 +229,64 @@ final class CircuitBreakerManager implements CircuitBreakerContract
                 'success_count' => 0,
                 'last_failure_at' => Date::now(),
             ]);
+
             // In half-open state, any failure reopens the circuit
             if ($this->model->state === CircuitBreakerState::HalfOpen) {
                 $this->doOpen();
 
                 return;
             }
+
             // In closed state, open if threshold is reached
-            if ($this->model->state === CircuitBreakerState::Closed && $failureCount >= $this->failureThreshold) {
-                $this->doOpen();
+            if ($this->model->state !== CircuitBreakerState::Closed || $failureCount < $this->failureThreshold) {
+                return;
             }
+
+            $this->doOpen();
         });
+    }
+
+    /**
+     * Open the circuit without acquiring a lock.
+     *
+     * Internal method for use within existing locks to prevent deadlock.
+     */
+    private function doOpen(): void
+    {
+        $this->model->update([
+            'state' => CircuitBreakerState::Open,
+            'opened_at' => Date::now(),
+        ]);
+
+        Event::dispatch(
+            new CircuitBreakerOpened(
+                $this->service,
+                $this->model->failure_count,
+                Date::now()->toDateTimeImmutable(),
+            )
+        );
+    }
+
+    /**
+     * Close the circuit without acquiring a lock.
+     *
+     * Internal method for use within existing locks to prevent deadlock.
+     */
+    private function doClose(): void
+    {
+        $this->model->update([
+            'state' => CircuitBreakerState::Closed,
+            'failure_count' => 0,
+            'success_count' => 0,
+            'opened_at' => null,
+        ]);
+
+        Event::dispatch(
+            new CircuitBreakerClosed(
+                $this->service,
+                Date::now()->toDateTimeImmutable(),
+            )
+        );
     }
 
     /**
@@ -315,10 +323,12 @@ final class CircuitBreakerManager implements CircuitBreakerContract
                 'failure_count' => 0,
             ]);
 
-            Event::dispatch(new CircuitBreakerHalfOpened(
-                $this->service,
-                Date::now()->toDateTimeImmutable(),
-            ));
+            Event::dispatch(
+                new CircuitBreakerHalfOpened(
+                    $this->service,
+                    Date::now()->toDateTimeImmutable(),
+                )
+            );
         });
     }
 

@@ -1,12 +1,26 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Console\Commands;
 
-use Illuminate\Support\Sleep;
 use Cline\Chaperone\Deployment\DeploymentCoordinator;
 use Cline\Chaperone\Queue\QueueFilter;
 use Illuminate\Console\Command;
+use Illuminate\Support\Sleep;
 
+use function implode;
+use function range;
+use function sprintf;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class PrepareDeploymentCommand extends Command
 {
     protected $signature = 'chaperone:prepare-deployment

@@ -9,13 +9,13 @@
 
 namespace Cline\Chaperone\Console\Commands;
 
-use Illuminate\Support\Facades\Date;
 use Cline\Chaperone\Database\Models\SupervisedJob;
 use Cline\Chaperone\Enums\SupervisedJobStatus;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Date;
 
 use function sprintf;
 
@@ -273,15 +273,15 @@ final class StuckJobsCommand extends Command
 
         $formatted = match (true) {
             $seconds < 60 => sprintf('%d second(s)', $seconds),
-            $seconds < 3600 => sprintf('%d minute(s)', (int) ($seconds / 60)),
-            $seconds < 86400 => sprintf('%d hour(s)', (int) ($seconds / 3600)),
-            default => sprintf('%d day(s)', (int) ($seconds / 86400)),
+            $seconds < 3_600 => sprintf('%d minute(s)', (int) ($seconds / 60)),
+            $seconds < 86_400 => sprintf('%d hour(s)', (int) ($seconds / 3_600)),
+            default => sprintf('%d day(s)', (int) ($seconds / 86_400)),
         };
 
         // Color code based on duration severity
         $color = match (true) {
             $seconds < 300 => 'yellow',    // < 5 minutes: warning
-            $seconds < 3600 => 'red',      // < 1 hour: error
+            $seconds < 3_600 => 'red',      // < 1 hour: error
             default => 'magenta',          // >= 1 hour: critical
         };
 

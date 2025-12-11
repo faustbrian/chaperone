@@ -9,8 +9,6 @@
 
 namespace Cline\Chaperone\Console\Commands;
 
-use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Sleep;
 use Cline\Chaperone\Database\Models\CircuitBreaker;
 use Cline\Chaperone\Database\Models\ResourceViolation;
 use Cline\Chaperone\Database\Models\SupervisedJob;
@@ -19,10 +17,16 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
-use function json_encode;
-use function sprintf;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Sleep;
 
 use const JSON_PRETTY_PRINT;
+
+use function function_exists;
+use function in_array;
+use function json_encode;
+use function sprintf;
+use function system;
 
 /**
  * Artisan command to monitor supervised jobs in real-time.
@@ -84,7 +88,7 @@ final class MonitorCommand extends Command
         $refresh = (int) $this->option('refresh');
         $format = (string) $this->option('format');
 
-        if (!\in_array($format, ['table', 'json', 'compact'], true)) {
+        if (!in_array($format, ['table', 'json', 'compact'], true)) {
             $this->components->error('Invalid format. Use table, json, or compact.');
 
             return self::FAILURE;
@@ -100,7 +104,7 @@ final class MonitorCommand extends Command
         // For table/compact formats, loop with refresh
         while (true) {
             // Clear screen for refresh
-            if (\function_exists('system')) {
+            if (function_exists('system')) {
                 /** @phpstan-ignore-next-line */
                 system('clear');
             }
@@ -118,7 +122,7 @@ final class MonitorCommand extends Command
             }
 
             // Sleep for refresh interval
-            Sleep::usleep($refresh * 1000000);
+            Sleep::usleep($refresh * 1_000_000);
         }
     }
 
@@ -452,14 +456,14 @@ final class MonitorCommand extends Command
             return sprintf('%d second(s)', $seconds);
         }
 
-        if ($seconds < 3600) {
+        if ($seconds < 3_600) {
             return sprintf('%d minute(s)', (int) ($seconds / 60));
         }
 
-        if ($seconds < 86400) {
-            return sprintf('%d hour(s)', (int) ($seconds / 3600));
+        if ($seconds < 86_400) {
+            return sprintf('%d hour(s)', (int) ($seconds / 3_600));
         }
 
-        return sprintf('%d day(s)', (int) ($seconds / 86400));
+        return sprintf('%d day(s)', (int) ($seconds / 86_400));
     }
 }

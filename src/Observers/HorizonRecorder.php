@@ -1,36 +1,52 @@
 <?php declare(strict_types=1);
 
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Cline\Chaperone\Observers;
 
 use Illuminate\Support\Facades\Config;
 
+use function class_exists;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class HorizonRecorder
 {
     public function recordQueueMetrics(): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
-        if (! class_exists('Laravel\Horizon\Horizon')) {
+
+        if (!class_exists('Laravel\Horizon\Horizon')) {
             return;
         }
+
         // Horizon doesn't have a direct API for custom metrics
         // We can tag jobs for Horizon monitoring
     }
 
     public function recordSupervisionStarted(): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
+
         // Horizon tracks jobs automatically through queue system
     }
 
     public function recordSupervisionEnded(): void
     {
-        if (! $this->isEnabled()) {
+        if (!$this->isEnabled()) {
             return;
         }
+
         // Horizon tracks job completion automatically
     }
 

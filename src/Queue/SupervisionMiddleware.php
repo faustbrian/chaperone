@@ -11,8 +11,11 @@ namespace Cline\Chaperone\Queue;
 
 use Cline\Chaperone\Supervisors\JobSupervisor;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
-use function app;
+use function is_string;
+use function property_exists;
+use function resolve;
 
 /**
  * Laravel queue middleware for automatic job supervision.
@@ -23,6 +26,7 @@ use function app;
  * supervised list.
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class SupervisionMiddleware
 {
@@ -104,7 +108,7 @@ final readonly class SupervisionMiddleware
     private function startSupervision(mixed $job, string $queueName): void
     {
         try {
-            $supervisor = app(JobSupervisor::class);
+            $supervisor = resolve(JobSupervisor::class);
             $jobClass = $job::class;
 
             $supervisor->supervise($jobClass);
@@ -114,7 +118,7 @@ final readonly class SupervisionMiddleware
                 'queue' => $queueName,
                 'supervision_id' => $supervisor->getSupervisionId(),
             ]);
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             // Don't let supervision errors break job execution
             Log::error('Failed to start supervision for job', [
                 'job_class' => $job::class,

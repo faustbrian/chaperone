@@ -38,6 +38,7 @@ namespace Cline\Chaperone\Events;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class JobTimeout
 {

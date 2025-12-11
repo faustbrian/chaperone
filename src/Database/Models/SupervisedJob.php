@@ -34,25 +34,25 @@ use Override;
  * precise monitoring and debugging of job execution. The polymorphic initiator
  * relationship allows tracking which user, system, or entity triggered each job.
  *
- * @property null|Carbon                         $completed_at      When job completed successfully
- * @property null|DeadLetterJob                  $deadLetterJob     Dead letter queue entry if job was moved to DLQ
- * @property Collection<int, SupervisedJobError> $errors            Collection of error records
- * @property null|Carbon                         $failed_at         When job failed
- * @property Collection<int, Heartbeat>          $heartbeats        Collection of heartbeat records
- * @property mixed                               $id                Primary key (auto-increment, UUID, or ULID)
- * @property null|string                      $initiator_id      Polymorphic ID of initiator
- * @property null|string                      $initiator_type    Polymorphic type of initiator
- * @property null|Model                       $initiatedBy       Who initiated this job
- * @property string                           $job_class         Fully qualified job class name
- * @property string                           $job_id            Queue job identifier
- * @property Collection<int, JobHealthCheck>  $healthChecks      Collection of health check records
- * @property null|Carbon                      $last_heartbeat_at Last heartbeat received
- * @property null|array<string, mixed>        $metadata          Additional job metadata
- * @property Collection<int, ResourceViolation> $resourceViolations Collection of resource violation records
- * @property Carbon                           $started_at        When job started execution
- * @property SupervisedJobStatus              $status            Current job status
- * @property Carbon                           $created_at        Record creation timestamp
- * @property Carbon                           $updated_at        Record update timestamp
+ * @property null|Carbon                         $completed_at       When job completed successfully
+ * @property Carbon                              $created_at         Record creation timestamp
+ * @property null|DeadLetterJob                  $deadLetterJob      Dead letter queue entry if job was moved to DLQ
+ * @property Collection<int, SupervisedJobError> $errors             Collection of error records
+ * @property null|Carbon                         $failed_at          When job failed
+ * @property Collection<int, JobHealthCheck>     $healthChecks       Collection of health check records
+ * @property Collection<int, Heartbeat>          $heartbeats         Collection of heartbeat records
+ * @property mixed                               $id                 Primary key (auto-increment, UUID, or ULID)
+ * @property null|Model                          $initiatedBy        Who initiated this job
+ * @property null|string                         $initiator_id       Polymorphic ID of initiator
+ * @property null|string                         $initiator_type     Polymorphic type of initiator
+ * @property string                              $job_class          Fully qualified job class name
+ * @property string                              $job_id             Queue job identifier
+ * @property null|Carbon                         $last_heartbeat_at  Last heartbeat received
+ * @property null|array<string, mixed>           $metadata           Additional job metadata
+ * @property Collection<int, ResourceViolation>  $resourceViolations Collection of resource violation records
+ * @property Carbon                              $started_at         When job started execution
+ * @property SupervisedJobStatus                 $status             Current job status
+ * @property Carbon                              $updated_at         Record update timestamp
  *
  * @author Brian Faust <brian@cline.sh>
  */
@@ -60,31 +60,6 @@ final class SupervisedJob extends Model
 {
     use HasChaperonePrimaryKey;
     use HasFactory;
-
-    /**
-     * Boot the model and register event listeners.
-     *
-     * Sets up a creating event listener to validate that any initiator model
-     * used in the polymorphic relationship has proper morph key mapping configured.
-     * This prevents storing unmapped models when enforcement is enabled.
-     */
-    #[\Override]
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        self::creating(function (self $supervisedJob): void {
-            // Validate initiator morph key if an initiator is set
-            if ($supervisedJob->initiator_type !== null && $supervisedJob->initiator_id !== null) {
-                /** @var null|Model $initiator */
-                $initiator = $supervisedJob->initiatedBy;
-
-                if ($initiator !== null) {
-                    MorphKeyValidator::validateMorphKey($initiator);
-                }
-            }
-        });
-    }
 
     /**
      * The attributes that are mass assignable.
@@ -221,6 +196,35 @@ final class SupervisedJob extends Model
         $model = Config::get('chaperone.models.dead_letter_job', DeadLetterJob::class);
 
         return $this->hasOne($model, 'supervised_job_id');
+    }
+
+    /**
+     * Boot the model and register event listeners.
+     *
+     * Sets up a creating event listener to validate that any initiator model
+     * used in the polymorphic relationship has proper morph key mapping configured.
+     * This prevents storing unmapped models when enforcement is enabled.
+     */
+    #[Override()]
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(function (self $supervisedJob): void {
+            // Validate initiator morph key if an initiator is set
+            if ($supervisedJob->initiator_type === null || $supervisedJob->initiator_id === null) {
+                return;
+            }
+
+            /** @var null|Model $initiator */
+            $initiator = $supervisedJob->initiatedBy;
+
+            if ($initiator === null) {
+                return;
+            }
+
+            MorphKeyValidator::validateMorphKey($initiator);
+        });
     }
 
     /**

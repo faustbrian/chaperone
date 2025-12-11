@@ -22,18 +22,17 @@ use Illuminate\Support\Facades\Facade;
  * for all Chaperone functionality with a clean, expressive interface for configuring
  * supervision behavior, resource limits, and monitoring callbacks.
  *
- * @method static JobSupervisor                                                                                                                    watch(string $jobClass)
- * @method static CircuitBreaker                                                                                                                   circuitBreaker(string $service)
- * @method static void                                                                                                                             heartbeat(string $supervisionId, array $metadata = [])
- * @method static bool                                                                                                                             isHealthy(string $supervisionId)
+ * @method static CircuitBreaker                                                                                                                     circuitBreaker(string $service)
+ * @method static mixed                                                                                                                              dashboard()
  * @method static array{status: string, reason: null|string, updated_at: null|string, job_id: string, check_count: int, first_unhealthy_at?: string} getHealth(string $supervisionId)
- * @method static mixed                                                                                                                            pool(string $name)
- * @method static mixed                                                                                                                            dashboard()
- * @method static mixed                                                                                                                            prepareForDeployment()
- *
- * @see ChaperoneManager
+ * @method static void                                                                                                                               heartbeat(string $supervisionId, array $metadata = [])
+ * @method static bool                                                                                                                               isHealthy(string $supervisionId)
+ * @method static mixed                                                                                                                              pool(string $name)
+ * @method static mixed                                                                                                                              prepareForDeployment()
+ * @method static JobSupervisor                                                                                                                      watch(string $jobClass)
  *
  * @author Brian Faust <brian@cline.sh>
+ * @see ChaperoneManager
  */
 final class Chaperone extends Facade
 {

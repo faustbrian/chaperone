@@ -30,15 +30,16 @@ namespace Cline\Chaperone\Events;
  * ```
  *
  * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
  */
 final readonly class HeartbeatReceived
 {
     /**
      * Create a new heartbeat received event.
      *
-     * @param string              $supervisionId Unique identifier for the supervision session
-     * @param string              $heartbeatId   Unique identifier for this specific heartbeat
-     * @param array<string,mixed> $metadata      Optional metadata from the job about current state
+     * @param string               $supervisionId Unique identifier for the supervision session
+     * @param string               $heartbeatId   Unique identifier for this specific heartbeat
+     * @param array<string, mixed> $metadata      Optional metadata from the job about current state
      */
     public function __construct(
         public string $supervisionId,
