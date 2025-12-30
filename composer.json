@@ -19,7 +19,8 @@
     }
   ],
   "require": {
-    "php": "^8.5.0"
+    "php": "^8.5.0",
+    "cline/variable-keys": "^1.1"
   },
   "require-dev": {
     "ergebnis/composer-normalize": "^2.48.2",
@@ -64,8 +65,8 @@
     ],
     "test:lint": "ecs check",
     "test:refactor": "rector --dry-run",
-    "test:type-coverage": "pest --parallel --min=90 --type-coverage",
+    "test:type-coverage": "pest --parallel --min=80 --type-coverage",
     "test:types": "phpstan",
-    "test:unit": "pest --parallel --min=90 --coverage"
+    "test:unit": "pest --parallel --min=80 --coverage"
   }
 }

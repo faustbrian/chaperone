@@ -25,6 +25,13 @@ use Cline\Chaperone\Contracts\CircuitBreaker;
 use Cline\Chaperone\Contracts\HealthMonitor;
 use Cline\Chaperone\Contracts\ResourceMonitor;
 use Cline\Chaperone\Contracts\SupervisionStrategy;
+use Cline\Chaperone\Database\Models\CircuitBreaker as CircuitBreakerModel;
+use Cline\Chaperone\Database\Models\DeadLetterJob;
+use Cline\Chaperone\Database\Models\Heartbeat;
+use Cline\Chaperone\Database\Models\JobHealthCheck;
+use Cline\Chaperone\Database\Models\ResourceViolation;
+use Cline\Chaperone\Database\Models\SupervisedJob;
+use Cline\Chaperone\Database\Models\SupervisedJobError;
 use Cline\Chaperone\DeadLetterQueue\DeadLetterQueueManager;
 use Cline\Chaperone\Observers\ChaperoneObserver;
 use Cline\Chaperone\Queue\QueueFilter;
@@ -33,6 +40,8 @@ use Cline\Chaperone\Supervisors\HeartbeatMonitor;
 use Cline\Chaperone\Supervisors\JobSupervisor;
 use Cline\Chaperone\Supervisors\ResourceLimitEnforcer;
 use Cline\Chaperone\WorkerPools\WorkerPoolRegistry;
+use Cline\VariableKeys\Enums\PrimaryKeyType;
+use Cline\VariableKeys\Facades\VariableKeys;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\ServiceProvider;
 use Override;
@@ -97,10 +106,35 @@ final class ChaperoneServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerVariableKeys();
         $this->registerPublishing();
         $this->registerCommands();
         $this->registerObservers();
         $this->registerEventListeners();
+    }
+
+    /**
+     * Register variable key models with the VariableKeys facade.
+     *
+     * Maps all Chaperone models to their configured primary key type, allowing
+     * the VariableKeys package to handle primary key generation consistently
+     * across all supervised job tracking models.
+     */
+    private function registerVariableKeys(): void
+    {
+        /** @var string $primaryKeyType */
+        $primaryKeyType = config('chaperone.primary_key_type', 'id');
+        $type = PrimaryKeyType::tryFrom($primaryKeyType) ?? PrimaryKeyType::ID;
+
+        VariableKeys::map([
+            SupervisedJob::class => ['primary_key_type' => $type],
+            Heartbeat::class => ['primary_key_type' => $type],
+            JobHealthCheck::class => ['primary_key_type' => $type],
+            ResourceViolation::class => ['primary_key_type' => $type],
+            SupervisedJobError::class => ['primary_key_type' => $type],
+            CircuitBreakerModel::class => ['primary_key_type' => $type],
+            DeadLetterJob::class => ['primary_key_type' => $type],
+        ]);
     }
 
     /**

@@ -9,7 +9,7 @@
 
 namespace Cline\Chaperone\Database\Models;
 
-use Cline\Chaperone\Database\Concerns\HasChaperonePrimaryKey;
+use Cline\VariableKeys\Database\Concerns\HasVariablePrimaryKey;
 use Cline\Chaperone\Enums\ResourceViolationType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,7 +42,7 @@ use Override;
  */
 final class ResourceViolation extends Model
 {
-    use HasChaperonePrimaryKey;
+    use HasVariablePrimaryKey;
     use HasFactory;
 
     /**

@@ -9,7 +9,7 @@
 
 namespace Cline\Chaperone\Database\Models;
 
-use Cline\Chaperone\Database\Concerns\HasChaperonePrimaryKey;
+use Cline\VariableKeys\Database\Concerns\HasVariablePrimaryKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -43,7 +43,7 @@ use Override;
  */
 final class DeadLetterJob extends Model
 {
-    use HasChaperonePrimaryKey;
+    use HasVariablePrimaryKey;
     use HasFactory;
 
     /**

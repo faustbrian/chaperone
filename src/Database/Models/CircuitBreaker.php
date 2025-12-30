@@ -9,7 +9,7 @@
 
 namespace Cline\Chaperone\Database\Models;
 
-use Cline\Chaperone\Database\Concerns\HasChaperonePrimaryKey;
+use Cline\VariableKeys\Database\Concerns\HasVariablePrimaryKey;
 use Cline\Chaperone\Enums\CircuitBreakerState;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -43,7 +43,7 @@ use Override;
  */
 final class CircuitBreaker extends Model
 {
-    use HasChaperonePrimaryKey;
+    use HasVariablePrimaryKey;
     use HasFactory;
 
     /**

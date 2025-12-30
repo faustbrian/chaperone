@@ -9,7 +9,7 @@
 
 namespace Cline\Chaperone\Database\Models;
 
-use Cline\Chaperone\Database\Concerns\HasChaperonePrimaryKey;
+use Cline\VariableKeys\Database\Concerns\HasVariablePrimaryKey;
 use Cline\Chaperone\Enums\SupervisedJobStatus;
 use Cline\Chaperone\Support\MorphKeyValidator;
 use Illuminate\Database\Eloquent\Collection;
@@ -58,7 +58,7 @@ use Override;
  */
 final class SupervisedJob extends Model
 {
-    use HasChaperonePrimaryKey;
+    use HasVariablePrimaryKey;
     use HasFactory;
 
     /**

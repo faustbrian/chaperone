@@ -9,7 +9,7 @@
 
 namespace Cline\Chaperone\Database\Models;
 
-use Cline\Chaperone\Database\Concerns\HasChaperonePrimaryKey;
+use Cline\VariableKeys\Database\Concerns\HasVariablePrimaryKey;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -45,7 +45,7 @@ final class SupervisedJobError extends Model
 {
     /** @use HasFactory<Factory<SupervisedJobError>> */
     use HasFactory;
-    use HasChaperonePrimaryKey;
+    use HasVariablePrimaryKey;
 
     /**
      * Indicates if the model should be timestamped.
